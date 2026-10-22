@@ -1,0 +1,26 @@
+# Відео занять (1.3 GB) - не в git
+videos/
+*.mp4
+*.mkv
+*.mov
+*.avi
+*.webm
+*.m4v
+*.wmv
+*.flv
+
+# Ключі API
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# IDE / ОС
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store

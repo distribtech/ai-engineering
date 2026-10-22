@@ -1,0 +1,265 @@
+{
+  "$defs": {
+    "Currency": {
+      "enum": [
+        "RUB",
+        "USD",
+        "EUR",
+        "UAH",
+        "OTHER"
+      ],
+      "title": "Currency",
+      "type": "string"
+    },
+    "EquipmentCategory": {
+      "description": "Тип техніки. v2: дрони розбито на підтипи, додано мережі, IT, захист, спорядження, медицину, озброєння.",
+      "enum": [
+        "radio",
+        "phone",
+        "antenna_mast",
+        "cable",
+        "satellite",
+        "network",
+        "drone_fpv",
+        "drone_multirotor",
+        "drone_fixed_wing",
+        "drone_component",
+        "ew_sigint",
+        "optics",
+        "power",
+        "vehicle",
+        "it_hardware",
+        "software",
+        "tools",
+        "protective_gear",
+        "field_gear",
+        "medical",
+        "weapon_related",
+        "other"
+      ],
+      "title": "EquipmentCategory",
+      "type": "string"
+    },
+    "EquipmentItem": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Model or item name as written in the text, without quantity, e.g. 'ТА-57', 'TYT-7500', 'кабель полевой П-274м'.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "category": {
+          "$ref": "#/$defs/EquipmentCategory",
+          "description": "Equipment type. radio: radios, repeaters, MANET modules; phone: field/landline phones; antenna_mast: antennas, masts; cable: cables, field lines, reels; satellite: satellite terminals, Starlink; network: routers, switches, Wi-Fi bridges, mesh nodes; drone_fpv: FPV drones; drone_multirotor: recon quadcopters (Mavic, Matrice, Autel) and heavy multirotors; drone_fixed_wing: fixed-wing UAVs; drone_component: motors, video transmitters, controllers, goggles, drone batteries, frames; ew_sigint: EW/jammers, SIGINT, drone detectors, radars; optics: thermal and night sights, rangefinders, binoculars; power: generators, batteries not for drones, power banks, chargers, solar panels; vehicle: cars, motorcycles, ATVs and parts; it_hardware: laptops, tablets, smartphones, flash drives; software: apps, messengers, firmware, VPN; tools: tools, soldering, repair kits, consumables; protective_gear: body armor, helmets, plate carriers, ballistic glasses; field_gear: clothing, boots, chest rigs, sleeping bags, tents, trench candles; medical: first aid kits, tourniquets, dressings, medical devices, medicines; weapon_related: weapons, ammunition, drone drop munitions, detonators and their accessories; other: anything else."
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer or brand if explicitly stated (e.g. 'Silvus', 'Аргус-М'), otherwise null. Do not guess.",
+          "title": "Manufacturer"
+        },
+        "quantity": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Number of items or amount only if a number is written explicitly (e.g. 10 for '10 шт.', 6 for '6 км'); 'a generator' or 'экземпляр' -> null.",
+          "title": "Quantity"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Unit for quantity: 'шт' for pieces, or the unit from the text ('км', 'м', 'кг'). Null if quantity is null.",
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "name",
+        "category",
+        "manufacturer",
+        "quantity",
+        "unit"
+      ],
+      "title": "EquipmentItem",
+      "type": "object"
+    },
+    "Language": {
+      "enum": [
+        "ru",
+        "uk",
+        "en",
+        "mixed"
+      ],
+      "title": "Language",
+      "type": "string"
+    },
+    "Money": {
+      "additionalProperties": false,
+      "properties": {
+        "amount_min": {
+          "description": "Amount as a plain number: '14300 рублей' -> 14300, '80к' -> 80000, '1м' -> 1000000. For a range, the lower bound.",
+          "minimum": 0,
+          "title": "Amount Min",
+          "type": "number"
+        },
+        "amount_max": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Upper bound for a range ('от 80к до 120к' -> 120000), otherwise null.",
+          "title": "Amount Max"
+        },
+        "currency": {
+          "$ref": "#/$defs/Currency",
+          "description": "Currency; 'р', 'руб', 'к рублей' -> RUB."
+        },
+        "purpose": {
+          "$ref": "#/$defs/MoneyPurpose",
+          "description": "What the amount refers to."
+        }
+      },
+      "required": [
+        "amount_min",
+        "amount_max",
+        "currency",
+        "purpose"
+      ],
+      "title": "Money",
+      "type": "object"
+    },
+    "MoneyPurpose": {
+      "enum": [
+        "price",
+        "salary",
+        "purchase_total",
+        "fundraising",
+        "other"
+      ],
+      "title": "MoneyPurpose",
+      "type": "string"
+    },
+    "PostType": {
+      "enum": [
+        "delivery_report",
+        "equipment_review",
+        "news",
+        "event",
+        "announcement",
+        "advertisement",
+        "vacancy",
+        "request",
+        "guide",
+        "personal",
+        "humor",
+        "other"
+      ],
+      "title": "PostType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "post_type": {
+      "$ref": "#/$defs/PostType",
+      "description": "Main purpose of the post. Pick one."
+    },
+    "language": {
+      "$ref": "#/$defs/Language",
+      "description": "Main language of the text. Russian with English technical terms is still 'ru'; use 'mixed' only when whole sentences are in different languages."
+    },
+    "summary": {
+      "description": "One-sentence summary in Ukrainian, up to 300 characters.",
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    },
+    "equipment": {
+      "description": "Concrete equipment, devices or software products mentioned. Empty list if none. Do not include generic words like 'связь' or 'оборудование'.",
+      "items": {
+        "$ref": "#/$defs/EquipmentItem"
+      },
+      "title": "Equipment",
+      "type": "array"
+    },
+    "organizations": {
+      "description": "Companies, military units, projects, volunteer groups, alliances and channels named in the text, spelled as in the text but in nominative case, without emoji (e.g. 'БЮРО 1440', '204 СПН \"Ахмат\"'). Exclude social platforms mentioned only as links or hashtags (Telegram, VK, Rutube, Дзен, MAX). Empty list if none.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Organizations",
+      "type": "array"
+    },
+    "locations": {
+      "description": "Geographic places (countries, regions, cities, districts) in nominative case and full form: 'в Мск' -> 'Москва'. Empty list if none.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Locations",
+      "type": "array"
+    },
+    "event_date": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Date of the event the post is about, YYYY-MM-DD. Only if day, month and year can be read from the text (the year may come from context such as an event name 'Дронница-2026'). For a range use the start date. Relative dates ('сегодня', 'вчера') -> null.",
+      "title": "Event Date"
+    },
+    "money": {
+      "description": "Money amounts mentioned. Empty list if none.",
+      "items": {
+        "$ref": "#/$defs/Money"
+      },
+      "title": "Money",
+      "type": "array"
+    },
+    "call_to_action": {
+      "description": "True if the post asks readers to do something: write to a bot or DM, apply, register, repost, send or donate.",
+      "title": "Call To Action",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "post_type",
+    "language",
+    "summary",
+    "equipment",
+    "organizations",
+    "locations",
+    "event_date",
+    "money",
+    "call_to_action"
+  ],
+  "title": "ExtractedPost",
+  "type": "object"
+}

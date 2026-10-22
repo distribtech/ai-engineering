@@ -1,0 +1,12 @@
+# Ключі API
+.env
+
+# Сирі тексти можуть містити персональні дані — у репозиторій не потрапляють
+data/raw/
+
+# Зведений корпус (23 MB) збирається з data/*_clean.jsonl: python scripts/build_corpus.py
+data/corpus.jsonl
+
+__pycache__/
+*.pyc
+.venv/
