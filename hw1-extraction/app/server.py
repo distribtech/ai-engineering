@@ -131,8 +131,8 @@ def parse_date(value: str | None) -> datetime | None:
 
 def get_posts(channel: str) -> list[dict]:
     """Пости каналу з прибраними персональними даними; кеш скидається при зміні файлу."""
-    path = tg.raw_path(channel)
-    if not path.exists():
+    path = tg.source_path(channel)
+    if path is None:
         return []
     mtime = path.stat().st_mtime
     with _cache_lock:
