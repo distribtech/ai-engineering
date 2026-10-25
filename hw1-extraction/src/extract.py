@@ -26,6 +26,7 @@ from pathlib import Path
 import requests
 from pydantic import ValidationError
 
+from src import config
 from src.schema import ExtractedPost, json_schema
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -33,8 +34,8 @@ PROMPTS_DIR = ROOT / "prompts"
 RESULTS_FILE = ROOT / "results" / "runs.jsonl"
 GOLDEN_FILE = ROOT / "data" / "golden.json"
 
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11435")
-DEFAULT_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3:8b")
+OLLAMA_URL = config.OLLAMA_URL
+DEFAULT_MODEL = config.OLLAMA_MODEL
 NUM_CTX = 8192
 TIMEOUT_S = 300
 NETWORK_RETRIES = 2

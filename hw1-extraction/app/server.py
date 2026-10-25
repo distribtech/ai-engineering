@@ -41,8 +41,8 @@ CHANNELS_FILE = DATA / "channels.json"
 STATE_FILE = DATA / "state.json"
 USERNAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]{3,31}$")
 
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11435")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3:8b")
+OLLAMA_URL = ex.OLLAMA_URL
+OLLAMA_MODEL = ex.DEFAULT_MODEL
 
 DEFAULT_CHANNELS = [
     ("ghost_of_novorossia", "ПриZрак Новороссии"),

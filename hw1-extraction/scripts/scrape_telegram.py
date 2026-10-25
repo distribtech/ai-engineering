@@ -258,7 +258,11 @@ def clean_path(channel: str) -> Path:
 def load_raw(channel: str) -> list[dict]:
     path = raw_path(channel)
     if not path.exists():
-        return []
+        # На новому комп'ютері (клон із git) сирих файлів немає, бо вони в .gitignore.
+        # Тоді беремо clean-версію з репозиторію: тексти там уже з масками, решта полів та сама.
+        path = clean_path(channel)
+        if not path.exists():
+            return []
     with path.open(encoding="utf-8") as f:
         return [json.loads(line) for line in f]
 
