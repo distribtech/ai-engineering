@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Z-канали: завантаження і вижимка</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1b1f24; --muted: #667085; --line: #e3e6eb;
+    --accent: #2563eb; --accent-text: #ffffff; --ok: #15803d; --warn: #b45309; --bad: #b91c1c;
+    --chip: #eef2ff; --code: #f1f3f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1216; --card: #171b21; --text: #e8eaee; --muted: #9aa3b0; --line: #2a303a;
+      --accent: #5b8cff; --accent-text: #0b1020; --ok: #4ade80; --warn: #fbbf24; --bad: #f87171;
+      --chip: #1f2740; --code: #11151a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; margin: 4px 0 6px; }
+  h2 { font-size: 16px; margin: 0 0 10px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+  .tabs { display: flex; gap: 6px; margin: 12px 0; position: sticky; top: 0; background: var(--bg); padding: 6px 0; z-index: 5; }
+  .tab { flex: 1; text-align: center; padding: 9px 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--text); cursor: pointer; font: inherit; }
+  .tab.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .grow { flex: 1 1 160px; }
+  button, select, input[type=text], input[type=number], input[type=search] {
+    font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-height: 38px;
+  }
+  select, input[type=text], input[type=search] { max-width: 100%; min-width: 0; }
+  .row > .grow { min-width: 0; }
+  button { cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+  button:disabled { opacity: .55; cursor: default; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .chan { border-top: 1px solid var(--line); padding: 12px 0; }
+  .chan:first-of-type { border-top: 0; }
+  .chan-head { display: flex; gap: 10px; align-items: flex-start; }
+  .chan-head input[type=checkbox] { margin-top: 5px; width: 18px; height: 18px; }
+  .chan-title { font-weight: 600; }
+  .stats { display: flex; gap: 14px; flex-wrap: wrap; margin: 4px 0 0 28px; font-size: 13px; color: var(--muted); }
+  .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+  a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+  pre.log { background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin: 8px 0 0; max-height: 280px; overflow: auto; font: 12px/1.45 ui-monospace, Consolas, monospace; white-space: pre-wrap; word-break: break-all; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .chip { background: var(--chip); border-radius: 999px; padding: 2px 10px; font-size: 12.5px; }
+  .post { border-top: 1px solid var(--line); padding: 12px 0; }
+  .post:first-child { border-top: 0; }
+  .post-meta { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+  .post-text { white-space: pre-wrap; word-wrap: break-word; }
+  .post-text.clamp { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+  .more { background: none; border: 0; color: var(--accent); padding: 2px 0; min-height: 0; }
+  .summary p { margin: 6px 0; }
+  .summary sup a { font-weight: 600; }
+  .note { background: var(--chip); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; margin-bottom: 12px; }
+  .hidden { display: none; }
+  .j-cols { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 12px; }
+  @media (min-width: 860px) { .j-cols { grid-template-columns: 1fr 1fr; } }
+  .j-cols .card { margin-bottom: 0; min-width: 0; }
+  .j-list { max-height: 230px; overflow: auto; margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; }
+  .j-item { padding: 8px 10px; border-top: 1px solid var(--line); cursor: pointer; }
+  .j-item:first-child { border-top: 0; }
+  .j-item:hover, .j-item.active { background: var(--chip); }
+  .j-item .t { font-size: 12.5px; color: var(--muted); }
+  pre.json { background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin: 8px 0; overflow: auto; max-height: 520px; font: 12.5px/1.45 ui-monospace, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+  mark { background: #fde68a; color: #1b1f24; border-radius: 3px; padding: 0 1px; }
+  .badge { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 600; }
+  .badge.valid { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+  .badge.repaired { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+  .badge.failed { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); }
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.cmp th, table.cmp td { text-align: left; padding: 6px 8px; border-top: 1px solid var(--line); vertical-align: top; word-break: break-word; }
+  details { margin-top: 8px; }
+  details summary { cursor: pointer; color: var(--accent); }
+  .meta-grid { display: flex; gap: 4px 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -2px; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 560px) { .wrap { padding: 12px; } .stats { margin-left: 0; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Z-канали: завантаження і вижимка</h1>
+  <p class="sub">Збір сирих постів (вкладки «Канали», «Вижимка», «Пости») і перетворення їх на JSON (вкладка «JSON»).</p>
+
+  <div class="note">
+    <b>Звідки дані.</b> Сервер відкриває публічну веб-версію каналу <code>https://t.me/s/назва</code> (без акаунта) і читає пости так, як їх бачить будь-який відвідувач.
+    Нічого не вигадується: біля кожного поста є посилання на оригінал і час, коли він був завантажений. Журнал внизу вкладки «Канали» показує кожну відкриту адресу.
+    Телефони, картки, гаманці та @нікнейми в тексті замасковано.
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="channels">Канали</button>
+    <button class="tab" data-tab="digest">Вижимка</button>
+    <button class="tab" data-tab="posts">Пости</button>
+    <button class="tab" data-tab="json">JSON</button>
+  </div>
+
+  <!-- ===== Канали ===== -->
+  <section id="tab-channels">
+    <div class="card">
+      <div class="row">
+        <button class="primary" id="btn-update-all">Оновити вибрані</button>
+        <label class="small muted">Для нового каналу брати останні
+          <input type="number" id="days-new" value="30" min="1" max="365" style="width:70px"> днів</label>
+      </div>
+      <p class="small muted" style="margin:8px 0 0">Для каналів зі збереженими постами докачуються лише нові, тож кнопка швидка й безпечна для повторного натискання.</p>
+    </div>
+
+    <div class="card">
+      <div id="channel-list" class="muted">Завантаження…</div>
+      <div class="row" style="margin-top:12px">
+        <input type="text" id="new-channel" class="grow" placeholder="додати канал: username або t.me/…">
+        <button id="btn-add">Додати</button>
+      </div>
+      <div id="add-error" class="small bad"></div>
+    </div>
+
+    <div class="card">
+      <h2>Журнал оновлення <span id="job-state" class="small muted"></span></h2>
+      <pre class="log" id="job-log">Поки порожньо. Натисніть «Оновити вибрані».</pre>
+    </div>
+  </section>
+
+  <!-- ===== Вижимка ===== -->
+  <section id="tab-digest" class="hidden">
+    <div class="card">
+      <div class="row">
+        <label class="small muted">Період
+          <select id="digest-days">
+            <option value="1">24 години</option>
+            <option value="3">3 дні</option>
+            <option value="7" selected>7 днів</option>
+            <option value="30">30 днів</option>
+          </select></label>
+        <label class="small"><input type="checkbox" id="digest-tech" checked> лише про техніку</label>
+        <button class="primary" id="btn-digest">Показати вижимку</button>
+        <button id="btn-summary">Переказ від локальної моделі</button>
+      </div>
+      <p class="small muted" style="margin:8px 0 0">Показуються лише дані, які вже завантажені. Свіжіші — після «Оновити» на вкладці «Канали». Репости між каналами рахуються один раз. «Лише про техніку» — грубий фільтр за ключовими словами (дрони, зв'язок, РЕБ, авто, оптика, медицина, спорядження): може пропустити частину постів або захопити зайве.</p>
+    </div>
+    <div id="summary-box" class="card hidden"></div>
+    <div id="digest-box"></div>
+  </section>
+
+  <!-- ===== Пости ===== -->
+  <section id="tab-posts" class="hidden">
+    <div class="card">
+      <div class="row">
+        <select id="f-channel" class="grow"><option value="">Усі канали</option></select>
+        <input type="search" id="f-q" class="grow" placeholder="пошук у тексті">
+        <select id="f-days">
+          <option value="0">весь час</option>
+          <option value="1">24 години</option>
+          <option value="7" selected>7 днів</option>
+          <option value="30">30 днів</option>
+        </select>
+        <select id="f-sort">
+          <option value="date">за датою</option>
+          <option value="views">за переглядами</option>
+        </select>
+      </div>
+    </div>
+    <div class="card">
+      <div id="posts-count" class="small muted"></div>
+      <div id="posts-list"></div>
+      <button id="btn-more" class="hidden" style="margin-top:10px">Показати ще</button>
+    </div>
+  </section>
+
+  <!-- ===== JSON ===== -->
+  <section id="tab-json" class="hidden">
+    <div class="note">
+      Етап 2: пост → JSON за схемою <code>src/schema.py</code>. Зліва пост, у якому <mark>підсвічено</mark> фрагменти, що потрапили в JSON; справа результат і «паспорт» прогону: модель, версія промпту, параметри, час. Модель бачить текст із замаскованими персональними даними.
+    </div>
+    <div class="card">
+      <label class="small muted">Джерело постів
+        <select id="j-source">
+          <option value="golden">Golden set (10 розмічених)</option>
+          <option value="dataset">Робочий набір (30)</option>
+          <option value="recent">Свіжі пости про техніку (3 дні)</option>
+        </select></label>
+      <div id="j-list" class="j-list"></div>
+    </div>
+    <div id="j-main" class="hidden">
+      <div class="card">
+        <div class="row">
+          <label class="small muted">Промпт <select id="j-prompt"></select></label>
+          <label class="small muted">temperature <input type="number" id="j-temp" value="0" min="0" max="2" step="0.1" style="width:70px"></label>
+          <label class="small muted">top_p <input type="number" id="j-topp" value="0.9" min="0" max="1" step="0.05" style="width:70px"></label>
+          <button class="primary" id="j-run">Витягнути JSON</button>
+        </div>
+        <div class="small muted" id="j-model" style="margin-top:6px"></div>
+      </div>
+      <div class="j-cols">
+        <div class="card">
+          <h2>Сирий пост</h2>
+          <div class="post-meta" id="j-post-meta"></div>
+          <div class="post-text" id="j-post-text"></div>
+        </div>
+        <div class="card">
+          <h2>JSON <span id="j-badge"></span></h2>
+          <div class="row" id="j-history-row"></div>
+          <div class="meta-grid" id="j-run-meta"></div>
+          <div id="j-errors" class="small warn"></div>
+          <pre class="json" id="j-json">Оберіть пост і натисніть «Витягнути JSON».</pre>
+          <details id="j-sent"><summary>Що саме відправлено моделі</summary><div id="j-sent-body"></div></details>
+        </div>
+      </div>
+      <div class="card hidden" id="j-compare"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const TOPIC_LABELS = { drones: "дрони", ew_sigint: "РЕБ/РЕР", comms: "зв'язок", optics: "оптика", vehicles: "авто", medicine: "медицина", gear: "спорядження", fundraising: "збори/звіти" };
+
+function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") node.className = v;
+    else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+    else node.setAttribute(k, v);
+  }
+  for (const c of children.flat()) node.append(c instanceof Node ? c : document.createTextNode(c ?? ""));
+  return node;
+}
+async function api(path, opts) {
+  const resp = await fetch(path, opts);
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+  return data;
+}
+const post = (path, body) => api(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleString("uk-UA", { dateStyle: "short", timeStyle: "short" }) : "—"; }
+function ago(iso) {
+  if (!iso) return "—";
+  const m = Math.round((Date.now() - new Date(iso)) / 60000);
+  if (m < 1) return "щойно";
+  if (m < 60) return `${m} хв тому`;
+  if (m < 1440) return `${Math.round(m / 60)} год тому`;
+  return `${Math.round(m / 1440)} дн тому`;
+}
+function num(n) { return Number(n || 0).toLocaleString("uk-UA"); }
+
+/* ---------- вкладки ---------- */
+function switchTab(name) {
+  document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+  for (const n of ["channels", "digest", "posts", "json"]) $("#tab-" + n).classList.toggle("hidden", n !== name);
+  if (name === "posts") loadPosts(true);
+  if (name === "json") initJsonTab();
+}
+document.querySelectorAll(".tab").forEach((btn) => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
+function openInJson(channel, id) { switchTab("json"); selectPost(channel, id); window.scrollTo({ top: 0 }); }
+
+/* ---------- канали ---------- */
+let channels = [];
+async function loadChannels() {
+  channels = await api("/api/channels");
+  const list = $("#channel-list");
+  list.replaceChildren(...channels.map(renderChannel));
+  const sel = $("#f-channel"), current = sel.value;
+  sel.replaceChildren(el("option", { value: "" }, "Усі канали"), ...channels.map((c) => el("option", { value: c.username }, c.title || c.username)));
+  sel.value = current;
+}
+function renderChannel(c) {
+  const cb = el("input", { type: "checkbox" });
+  cb.checked = c.enabled;
+  cb.addEventListener("change", () => api(`/api/channels/${c.username}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled: cb.checked }) }));
+  const r = c.last_result;
+  const lastRun = c.last_error ? el("span", { class: "bad" }, "помилка: " + c.last_error)
+    : c.last_run_at ? el("span", {}, `оновлено ${ago(c.last_run_at)}` + (r ? ` (нових: ${r.added})` : ""))
+    : el("span", { class: "warn" }, "ще не оновлювали");
+  return el("div", { class: "chan" },
+    el("div", { class: "chan-head" }, cb,
+      el("div", { class: "grow" },
+        el("div", { class: "chan-title" }, c.title || c.username),
+        el("a", { href: `https://t.me/s/${c.username}`, target: "_blank", rel: "noopener noreferrer", class: "small" }, "t.me/s/" + c.username + " ↗")),
+      el("button", { class: "small", onclick: () => startUpdate([c.username]) }, "Оновити"),
+      el("button", { class: "small", title: "Прибрати зі списку (дані лишаються)", onclick: async () => { if (confirm(`Прибрати ${c.username} зі списку? Завантажені дані лишаться на диску.`)) { await api(`/api/channels/${c.username}`, { method: "DELETE" }); loadChannels(); } } }, "✕")),
+    el("div", { class: "stats" },
+      el("span", {}, `постів: ${num(c.with_text)} з текстом (${num(c.stored)} усього)`),
+      el("span", {}, `найновіший пост: ${fmtDate(c.newest_post)}`),
+      lastRun));
+}
+$("#btn-add").addEventListener("click", async () => {
+  $("#add-error").textContent = "";
+  try { await post("/api/channels", { username: $("#new-channel").value }); $("#new-channel").value = ""; loadChannels(); }
+  catch (e) { $("#add-error").textContent = e.message; }
+});
+$("#btn-update-all").addEventListener("click", () => startUpdate(channels.filter((c) => c.enabled).map((c) => c.username)));
+
+/* ---------- оновлення + журнал ---------- */
+let pollTimer = null;
+async function startUpdate(names) {
+  try { await post("/api/update", { channels: names, days: Number($("#days-new").value) || 30 }); }
+  catch (e) { alert(e.message); return; }
+  pollJob();
+}
+async function pollJob() {
+  clearTimeout(pollTimer);
+  const j = await api("/api/job");
+  const log = $("#job-log");
+  const stick = log.scrollTop + log.clientHeight >= log.scrollHeight - 20;
+  log.textContent = j.log.join("\n") || "Поки порожньо.";
+  if (stick) log.scrollTop = log.scrollHeight;
+  $("#job-state").replaceChildren(j.running ? el("span", {}, el("span", { class: "spinner" }), "триває…") : j.finished_at ? el("span", { class: "ok" }, "завершено " + ago(j.finished_at)) : "");
+  $("#btn-update-all").disabled = j.running;
+  if (j.running) pollTimer = setTimeout(pollJob, 1500);
+  else if (j.finished_at) loadChannels();
+}
+
+/* ---------- вижимка ---------- */
+function topicChips(topics, total) {
+  const items = Object.entries(topics).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+  return el("div", { class: "chips" }, items.map(([k, n]) => el("span", { class: "chip" }, `${TOPIC_LABELS[k] || k} ${total ? Math.round(100 * n / total) : 0}%`)));
+}
+function postLine(p) {
+  return el("div", { class: "post" },
+    el("div", { class: "post-meta" }, el("span", {}, p.channel), el("span", {}, fmtDate(p.date)), el("span", {}, "👁 " + (p.views || "—")),
+      el("a", { href: p.url, target: "_blank", rel: "noopener noreferrer" }, "оригінал ↗"),
+      el("button", { class: "more small", onclick: () => openInJson(p.channel, p.id) }, "→ JSON")),
+    el("div", { class: "post-text" }, p.text));
+}
+async function loadDigest() {
+  const box = $("#digest-box");
+  box.replaceChildren(el("div", { class: "muted" }, el("span", { class: "spinner" }), "Рахую…"));
+  const d = await api("/api/digest?days=" + $("#digest-days").value + ($("#digest-tech").checked ? "&tech_only=1" : ""));
+  if (!d.posts) { box.replaceChildren(el("div", { class: "card muted" }, "За цей період немає завантажених постів. Натисніть «Оновити» на вкладці «Канали».")); return; }
+  box.replaceChildren(
+    el("div", { class: "card" },
+      el("h2", {}, `За ${$("#digest-days").selectedOptions[0].text}: ${num(d.posts)} постів`),
+      el("div", { class: "small muted" }, `від ${fmtDate(d.from_date)} до ${fmtDate(d.to_date)}; ще ${num(d.duplicates)} повторів (репости між каналами) не враховано`),
+      el("div", { class: "small muted", style: "margin-top:6px" }, "Теми — грубий підрахунок за ключовими словами, не точна класифікація:"),
+      topicChips(d.topics, d.posts)),
+    el("div", { class: "card" }, el("h2", {}, "Найпереглядуваніші пости"), ...d.top.map(postLine)),
+    ...d.channels.map((c) => el("div", { class: "card" },
+      el("h2", {}, c.title),
+      el("div", { class: "small muted" }, `${num(c.posts)} постів, ${num(c.views_total)} переглядів, репостів: ${num(c.reposts)}`),
+      topicChips(c.topics, c.posts),
+      ...c.top.map(postLine))));
+}
+$("#btn-digest").addEventListener("click", () => loadDigest().catch((e) => $("#digest-box").replaceChildren(el("div", { class: "card bad" }, e.message))));
+
+$("#btn-summary").addEventListener("click", async () => {
+  const box = $("#summary-box");
+  box.classList.remove("hidden");
+  box.replaceChildren(el("span", { class: "spinner" }), "Модель читає пости, це може тривати до хвилини…");
+  $("#btn-summary").disabled = true;
+  try {
+    const s = await post("/api/digest/summary", { days: Number($("#digest-days").value), tech_only: $("#digest-tech").checked });
+    const byN = Object.fromEntries(s.sources.map((x) => [x.n, x]));
+    const paragraphs = s.summary.split(/\n+/).filter((l) => l.trim()).map((line) => {
+      const p = el("p", {});
+      for (const part of line.split(/(\[\d+\])/)) {
+        const m = part.match(/^\[(\d+)\]$/);
+        if (m && byN[m[1]]) p.append(el("sup", {}, el("a", { href: byN[m[1]].url, target: "_blank", rel: "noopener noreferrer", title: `${byN[m[1]].channel}, ${byN[m[1]].date.slice(0, 10)}` }, `[${m[1]}]`)));
+        else p.append(part);
+      }
+      return p;
+    });
+    box.replaceChildren(
+      el("h2", {}, "Переказ від локальної моделі"),
+      el("div", { class: "summary" }, paragraphs),
+      el("div", { class: "small muted", style: "margin-top:8px" }, `Модель ${s.model}, ${s.seconds} с, на основі ${s.posts_used} найпереглядуваніших постів. Номери в дужках ведуть на оригінали: перевіряйте їх. Модель може помилятися.`));
+  } catch (e) { box.replaceChildren(el("span", { class: "bad" }, e.message)); }
+  finally { $("#btn-summary").disabled = false; }
+});
+
+/* ---------- пости ---------- */
+let postsOffset = 0;
+const PAGE = 30;
+async function loadPosts(reset) {
+  if (reset) { postsOffset = 0; $("#posts-list").replaceChildren(); }
+  const qs = new URLSearchParams({ days: $("#f-days").value, sort: $("#f-sort").value, q: $("#f-q").value, limit: PAGE, offset: postsOffset });
+  if ($("#f-channel").value) qs.set("channels", $("#f-channel").value);
+  const d = await api("/api/posts?" + qs);
+  for (const p of d.items) {
+    const text = el("div", { class: "post-text clamp" }, p.text);
+    const more = el("button", { class: "more small" }, "розгорнути");
+    more.addEventListener("click", () => { const open = text.classList.toggle("clamp"); more.textContent = open ? "розгорнути" : "згорнути"; });
+    $("#posts-list").append(el("div", { class: "post" },
+      el("div", { class: "post-meta" }, el("b", {}, p.channel), el("span", {}, fmtDate(p.date)), el("span", {}, "👁 " + (p.views || "—")),
+        p.forwarded_from ? el("span", {}, "репост: " + p.forwarded_from) : "",
+        p.document ? el("span", {}, "📎 " + (p.document.title || "файл") + (p.document.size ? ` (${p.document.size})` : "")) : "",
+        el("a", { href: p.url, target: "_blank", rel: "noopener noreferrer" }, "оригінал ↗"),
+        el("span", { title: "Коли цей пост завантажено" }, p.fetched_at ? "завантажено " + ago(p.fetched_at) : ""),
+        el("button", { class: "more small", onclick: () => openInJson(p.channel, p.id) }, "→ JSON")),
+      text, more));
+  }
+  postsOffset += d.items.length;
+  $("#posts-count").textContent = `Знайдено ${num(d.total)}, показано ${num(postsOffset)}`;
+  $("#btn-more").classList.toggle("hidden", postsOffset >= d.total);
+}
+$("#btn-more").addEventListener("click", () => loadPosts(false));
+let qTimer;
+$("#f-q").addEventListener("input", () => { clearTimeout(qTimer); qTimer = setTimeout(() => loadPosts(true), 300); });
+for (const id of ["#f-channel", "#f-days", "#f-sort"]) $(id).addEventListener("change", () => loadPosts(true));
+
+/* ---------- JSON: пост і результат поруч ---------- */
+let jCur = null, jRuns = [], jPrompts = [], jInit = false;
+
+async function initJsonTab() {
+  if (!jInit) {
+    jInit = true;
+    const p = await api("/api/prompts");
+    jPrompts = p.prompts;
+    $("#j-prompt").replaceChildren(...jPrompts.map((x) => el("option", { value: x.version }, `${x.version} — ${x.label || "промпт"}`)));
+    $("#j-prompt").value = jPrompts.at(-1)?.version || "";
+    $("#j-model").textContent = `Модель: ${p.model} (локальна, Ollama). Версії промптів і changelog — у папці prompts/.`;
+  }
+  loadSources();
+}
+async function loadSources() {
+  const items = await api("/api/sources?kind=" + $("#j-source").value);
+  $("#j-list").replaceChildren(...(items.length ? items.map((it) => {
+    const row = el("div", { class: "j-item" + (jCur && jCur.channel === it.channel && jCur.id === it.id ? " active" : ""), onclick: () => selectPost(it.channel, it.id) },
+      el("div", { class: "t" }, `#${it.id} · ${it.channel} · ${fmtDate(it.date)}` + (it.golden ? " · ★ golden" : "") + (it.runs ? ` · прогонів: ${it.runs}` : "")),
+      el("div", {}, it.snippet));
+    return row;
+  }) : [el("div", { class: "j-item muted" }, "Немає постів. Спершу оновіть канали.")]));
+}
+$("#j-source").addEventListener("change", loadSources);
+
+async function selectPost(channel, id) {
+  jCur = { channel, id };
+  $("#j-main").classList.remove("hidden");
+  const [post, runs] = await Promise.all([api(`/api/post?channel=${channel}&id=${id}`), api(`/api/extractions?channel=${channel}&id=${id}`)]);
+  jCur.post = post;
+  jRuns = runs;
+  $("#j-post-meta").replaceChildren(el("b", {}, post.channel), el("span", {}, "#" + post.id), el("span", {}, fmtDate(post.date)), el("span", {}, "👁 " + (post.views || "—")),
+    post.forwarded_from ? el("span", {}, "репост: " + post.forwarded_from) : "",
+    el("a", { href: post.url, target: "_blank", rel: "noopener noreferrer" }, "оригінал ↗"));
+  showRun(runs[0] || null);
+  document.querySelectorAll(".j-item").forEach((n) => n.classList.remove("active"));
+  loadSources();
+}
+
+function highlight(node, text, needles) {
+  const lower = text.toLowerCase(), ranges = [];
+  for (const n of needles) {
+    const q = String(n || "").toLowerCase().trim();
+    if (q.length < 3) continue;
+    for (let i = lower.indexOf(q); i !== -1; i = lower.indexOf(q, i + q.length)) ranges.push([i, i + q.length]);
+  }
+  ranges.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+  const parts = []; let pos = 0;
+  for (const [s, e] of ranges) {
+    if (s < pos) continue;
+    if (s > pos) parts.push(text.slice(pos, s));
+    parts.push(el("mark", {}, text.slice(s, e)));
+    pos = e;
+  }
+  parts.push(text.slice(pos));
+  node.replaceChildren(...parts);
+}
+function needlesOf(out) {
+  if (!out) return [];
+  return [...out.equipment.flatMap((e) => [e.name, e.manufacturer]), ...out.organizations, ...out.locations];
+}
+function fmtVal(v) { return v === null || v === undefined || v === "" ? "—" : Array.isArray(v) ? (v.length ? v.map((x) => Array.isArray(x) ? x.join("–") : x).join("; ") : "—") : String(v); }
+
+function showRun(run) {
+  const text = jCur.post.text;
+  highlight($("#j-post-text"), text, needlesOf(run?.output));
+
+  // історія прогонів цього поста
+  const hist = $("#j-history-row");
+  if (jRuns.length > 1) {
+    const sel = el("select", {}, ...jRuns.map((r, i) => el("option", { value: i }, `${fmtDate(r.created_at)} · ${r.prompt_version} · t=${r.options.temperature} · ${r.status}`)));
+    sel.value = String(jRuns.indexOf(run));
+    sel.addEventListener("change", () => showRun(jRuns[Number(sel.value)]));
+    hist.replaceChildren(el("span", { class: "small muted" }, "Прогони:"), sel);
+  } else hist.replaceChildren();
+
+  if (!run) {
+    $("#j-badge").replaceChildren(); $("#j-run-meta").replaceChildren(); $("#j-errors").textContent = "";
+    $("#j-json").textContent = "Для цього поста ще немає результату. Натисніть «Витягнути JSON».";
+    $("#j-sent").classList.add("hidden"); $("#j-compare").classList.add("hidden");
+    return;
+  }
+  const label = { valid: "валідний ✓", repaired: "виправлено з 2-ї спроби", failed: "failed ✗" }[run.status];
+  $("#j-badge").replaceChildren(el("span", { class: "badge " + run.status }, label));
+  const tokens = run.attempts.reduce((s, a) => s + (a.output_tokens || 0), 0);
+  $("#j-run-meta").replaceChildren(
+    ...[`модель: ${run.model}`, `промпт: ${run.prompt_version}`, `temperature: ${run.options.temperature}`, `top_p: ${run.options.top_p}`,
+      `час: ${run.latency_s} с`, `токенів на виході: ${num(tokens)}`, `спроб: ${run.attempts.length}`, `вартість: $${run.cost_usd}`, `запущено ${ago(run.created_at)}`]
+      .map((t) => el("span", {}, t)));
+  const errs = run.attempts.filter((a) => a.errors.length);
+  $("#j-errors").textContent = errs.length ? errs.map((a) => `Спроба ${a.n} не пройшла перевірку: ${a.errors.slice(0, 4).join("; ")}`).join("\n") : "";
+  $("#j-json").textContent = run.output ? JSON.stringify(run.output, null, 2) : "Модель не змогла видати валідний JSON. Остання відповідь:\n\n" + run.attempts.at(-1).raw;
+
+  $("#j-sent").classList.remove("hidden");
+  $("#j-sent-body").replaceChildren(
+    el("div", { class: "small muted", style: "margin-top:6px" }, "Системний промпт (prompts/" + run.prompt_version + ".txt):"),
+    el("pre", { class: "json" }, run.request.system),
+    el("div", { class: "small muted" }, "Повідомлення користувача: текст поста (з масками персональних даних)."),
+    el("div", { class: "small muted" }, "Також у запиті JSON Schema з src/schema.py (формат відповіді, файл schema.json) і параметри: " + JSON.stringify(run.options)));
+
+  const cmp = $("#j-compare");
+  if (run.golden) {
+    cmp.classList.remove("hidden");
+    const mark = (s) => s === 1 ? el("span", { class: "ok" }, "✓") : s === 0 ? el("span", { class: "bad" }, "✗") : el("span", { class: "warn" }, Math.round(s * 100) + "%");
+    cmp.replaceChildren(
+      el("h2", {}, `Порівняння з еталоном: ${Math.round(run.golden.score * 100)}%`),
+      run.golden.status !== "reviewed" ? el("div", { class: "small warn" }, "Еталон ще чернетка (status=draft): я його писав, ви ще не перевіряли. Розбіжність може бути помилкою еталона, а не моделі.") : "",
+      el("table", { class: "cmp" },
+        el("tr", {}, el("th", {}, "Поле"), el("th", {}, "Модель"), el("th", {}, "Еталон"), el("th", {}, "")),
+        ...run.golden.rows.map((r) => el("tr", {}, el("td", {}, r.field), el("td", {}, fmtVal(r.pred)), el("td", {}, fmtVal(r.gold)), el("td", {}, mark(r.score))))));
+  } else cmp.classList.add("hidden");
+}
+
+$("#j-run").addEventListener("click", async () => {
+  if (!jCur) return;
+  const btn = $("#j-run");
+  btn.disabled = true;
+  $("#j-json").replaceChildren(el("span", { class: "spinner" }), "Модель працює… Перший запуск після простою може тривати до хвилини (завантаження моделі у відеопам'ять).");
+  try {
+    const run = await post("/api/extract", { channel: jCur.channel, id: jCur.id, prompt_version: $("#j-prompt").value, temperature: Number($("#j-temp").value), top_p: Number($("#j-topp").value) });
+    jRuns.unshift(run);
+    showRun(run);
+    loadSources();
+  } catch (e) { $("#j-json").textContent = "Помилка: " + e.message; }
+  finally { btn.disabled = false; }
+});
+
+loadChannels().then(pollJob);
+</script>
+</body>
+</html>

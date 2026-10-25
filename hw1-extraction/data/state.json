@@ -1,0 +1,101 @@
+{
+  "ghost_of_novorossia": {
+    "last_run_at": "2026-10-25T10:05:19+00:00",
+    "last_result": {
+      "added": 9,
+      "refreshed": 1,
+      "total": 3245,
+      "with_text": 3180,
+      "newest_post": "2026-10-23T18:30:47+00:00"
+    },
+    "last_error": null
+  },
+  "military_engineer": {
+    "last_run_at": "2026-10-25T10:05:22+00:00",
+    "last_result": {
+      "added": 7,
+      "refreshed": 1,
+      "total": 562,
+      "with_text": 560,
+      "newest_post": "2026-10-24T12:02:14+00:00"
+    },
+    "last_error": null
+  },
+  "reihatori": {
+    "last_run_at": "2026-10-25T10:05:23+00:00",
+    "last_result": {
+      "added": 0,
+      "refreshed": 1,
+      "total": 634,
+      "with_text": 628,
+      "newest_post": "2026-10-14T06:38:56+00:00"
+    },
+    "last_error": null
+  },
+  "surf_noise1": {
+    "last_run_at": "2026-10-25T10:05:24+00:00",
+    "last_result": {
+      "added": 15,
+      "refreshed": 1,
+      "total": 1683,
+      "with_text": 1655,
+      "newest_post": "2026-10-24T20:30:27+00:00"
+    },
+    "last_error": null
+  },
+  "makers2fron": {
+    "last_run_at": "2026-10-25T10:05:27+00:00",
+    "last_result": {
+      "added": 13,
+      "refreshed": 1,
+      "total": 2490,
+      "with_text": 2459,
+      "newest_post": "2026-10-25T06:56:33+00:00"
+    },
+    "last_error": null
+  },
+  "vrachivyneodni_channel": {
+    "last_run_at": "2026-10-25T10:05:28+00:00",
+    "last_result": {
+      "added": 9,
+      "refreshed": 1,
+      "total": 1501,
+      "with_text": 1479,
+      "newest_post": "2026-10-25T05:39:24+00:00"
+    },
+    "last_error": null
+  },
+  "interbrigady2022": {
+    "last_run_at": "2026-10-25T10:05:30+00:00",
+    "last_result": {
+      "added": 10,
+      "refreshed": 1,
+      "total": 1156,
+      "with_text": 1149,
+      "newest_post": "2026-10-25T09:21:21+00:00"
+    },
+    "last_error": null
+  },
+  "ekipadobrovolec": {
+    "last_run_at": "2026-10-25T10:05:31+00:00",
+    "last_result": {
+      "added": 0,
+      "refreshed": 1,
+      "total": 126,
+      "with_text": 125,
+      "newest_post": "2026-10-13T06:06:01+00:00"
+    },
+    "last_error": null
+  },
+  "signalman_diary": {
+    "last_run_at": "2026-10-25T10:05:32+00:00",
+    "last_result": {
+      "added": 12,
+      "refreshed": 1,
+      "total": 2797,
+      "with_text": 2613,
+      "newest_post": "2026-10-24T19:28:21+00:00"
+    },
+    "last_error": null
+  }
+}

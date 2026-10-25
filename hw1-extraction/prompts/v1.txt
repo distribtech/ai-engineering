@@ -1,0 +1,1 @@
+Extract structured data from the Telegram post. Follow the JSON schema and the field descriptions exactly. Return only JSON.

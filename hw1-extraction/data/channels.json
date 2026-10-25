@@ -1,0 +1,47 @@
+[
+  {
+    "username": "ghost_of_novorossia",
+    "title": "ПриZрак Новороссии",
+    "enabled": true
+  },
+  {
+    "username": "military_engineer",
+    "title": "Инженерный Z фронт",
+    "enabled": true
+  },
+  {
+    "username": "reihatori",
+    "title": "Лина Булатникова: помощь фронту, дроны «Мурз»",
+    "enabled": true
+  },
+  {
+    "username": "surf_noise1",
+    "title": "РОКОТ",
+    "enabled": true
+  },
+  {
+    "username": "makers2fron",
+    "title": "Умельцы-Фронту",
+    "enabled": true
+  },
+  {
+    "username": "vrachivyneodni_channel",
+    "title": "ВРАЧИ, ВЫ НЕ ОДНИ",
+    "enabled": true
+  },
+  {
+    "username": "interbrigady2022",
+    "title": "Интербригады 2022",
+    "enabled": true
+  },
+  {
+    "username": "ekipadobrovolec",
+    "title": "«Доброволец» Экип Центр",
+    "enabled": true
+  },
+  {
+    "username": "signalman_diary",
+    "title": "Дневник связиста Кибы",
+    "enabled": true
+  }
+]

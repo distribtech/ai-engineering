@@ -10,15 +10,18 @@
   python scripts/scrape_telegram.py signalman_diary
   python scripts/scrape_telegram.py signalman_diary --max-pages 3 --delay 1.5
   python scripts/scrape_telegram.py military_engineer --since 2025-10-22
+  python scripts/scrape_telegram.py military_engineer --update       # лише нові пости
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import time
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -160,13 +163,17 @@ def parse_page(html: str, channel: str) -> list[dict]:
     return posts
 
 
-def fetch(session: requests.Session, url: str, retries: int = 3, timeout: int = 20) -> str:
+def _log_stderr(message: str) -> None:
+    print(message, file=sys.stderr)
+
+
+def fetch(session: requests.Session, url: str, retries: int = 3, timeout: int = 20, log=_log_stderr) -> str:
     for attempt in range(1, retries + 1):
         try:
             resp = session.get(url, timeout=timeout)
             if resp.status_code == 429:
                 wait = int(resp.headers.get("Retry-After", 10 * attempt))
-                print(f"  429 Too Many Requests, чекаю {wait} с", file=sys.stderr)
+                log(f"  429 Too Many Requests, чекаю {wait} с")
                 time.sleep(wait)
                 continue
             resp.raise_for_status()
@@ -174,13 +181,26 @@ def fetch(session: requests.Session, url: str, retries: int = 3, timeout: int = 
         except requests.RequestException as exc:
             if attempt == retries:
                 raise
-            print(f"  помилка ({exc}), спроба {attempt + 1}/{retries}", file=sys.stderr)
+            log(f"  помилка ({exc}), спроба {attempt + 1}/{retries}")
             time.sleep(3 * attempt)
     raise RuntimeError(f"Не вдалося завантажити {url}")
 
 
-def scrape(channel: str, max_pages: int | None, delay: float, since: str | None = None) -> list[dict]:
-    """since - 'YYYY-MM-DD': зупинитися, щойно сторінка дійде до старіших постів."""
+def scrape(
+    channel: str,
+    max_pages: int | None,
+    delay: float,
+    since: str | None = None,
+    min_id: int | None = None,
+    log=print,
+) -> list[dict]:
+    """Гортає канал від найновіших постів назад.
+
+    since  - 'YYYY-MM-DD': зупинитися, щойно сторінка дійде до старіших постів.
+    min_id - id найновішого вже збереженого поста: зупинитися, дійшовши до нього.
+             Пости з id >= min_id повертаються (заодно оновлюються перегляди й правки).
+    log    - функція для рядків журналу (у вебі показується користувачу).
+    """
     session = requests.Session()
     session.headers.update(HEADERS)
 
@@ -191,20 +211,26 @@ def scrape(channel: str, max_pages: int | None, delay: float, since: str | None 
         url = BASE_URL.format(channel=channel)
         if before is not None:
             url += f"?before={before}"
-        posts = parse_page(fetch(session, url), channel)
+        log(f"GET {url}")
+        posts = parse_page(fetch(session, url, log=log), channel)
         posts = [p for p in posts if p["id"] not in by_id]
         if not posts:
             break
         page += 1
         before = min(p["id"] for p in posts)
+        reached_known = min_id is not None and before <= min_id
+        if min_id is not None:
+            posts = [p for p in posts if p["id"] >= min_id]
         reached_since = False
         if since:
             reached_since = any(p["date"] and p["date"][:10] < since for p in posts)
             posts = [p for p in posts if not p["date"] or p["date"][:10] >= since]
+        fetched_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
         for p in posts:
+            p["fetched_at"] = fetched_at
             by_id[p["id"]] = p
-        print(f"сторінка {page}: +{len(posts)} постів (всього {len(by_id)}), найстаріший id {before}")
-        if before <= 1 or reached_since:
+        log(f"  сторінка {page}: {len(posts)} постів у межах діапазону (всього {len(by_id)}), найстаріший id {before}")
+        if before <= 1 or reached_since or reached_known:
             break
         time.sleep(delay)
 
@@ -212,10 +238,63 @@ def scrape(channel: str, max_pages: int | None, delay: float, since: str | None 
 
 
 def write_jsonl(path: Path, rows: list[dict]) -> None:
+    """Записує через тимчасовий файл, щоб читач (вебсервер) не бачив напівзаписаний."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as f:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with tmp.open("w", encoding="utf-8") as f:
         for row in rows:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    os.replace(tmp, path)
+
+
+def raw_path(channel: str) -> Path:
+    return ROOT / "data" / "raw" / f"{channel}.jsonl"
+
+
+def clean_path(channel: str) -> Path:
+    return ROOT / "data" / f"{channel}_clean.jsonl"
+
+
+def load_raw(channel: str) -> list[dict]:
+    path = raw_path(channel)
+    if not path.exists():
+        return []
+    with path.open(encoding="utf-8") as f:
+        return [json.loads(line) for line in f]
+
+
+def save_channel(channel: str, posts: list[dict], min_chars: int = 1) -> int:
+    """Записує raw і clean файли каналу. Повертає кількість постів з текстом."""
+    write_jsonl(raw_path(channel), posts)
+    clean = [clean_post(p) for p in posts if len(p["text"]) >= min_chars]
+    write_jsonl(clean_path(channel), clean)
+    return len(clean)
+
+
+def update_channel(channel: str, days: int = 30, delay: float = 1.0, max_pages: int | None = None, log=print) -> dict:
+    """Докачує нові пости. Є збережені дані - від найновішого id; немає - за останні `days` днів."""
+    existing = {p["id"]: p for p in load_raw(channel)}
+    min_id = max(existing) if existing else None
+    since = None if existing else (date.today() - timedelta(days=days)).isoformat()
+    if existing:
+        log(f"Збережено {len(existing)} постів, найновіший id {min_id}: докачую лише нові")
+    else:
+        log(f"Даних немає: беру пости за останні {days} днів (з {since})")
+
+    fresh = scrape(channel, max_pages, delay, since=since, min_id=min_id, log=log)
+    added = sum(1 for p in fresh if p["id"] not in existing)
+    for p in fresh:
+        existing[p["id"]] = p  # свіжіша версія (перегляди, правки) перекриває стару
+    posts = sorted(existing.values(), key=lambda p: p["id"])
+    with_text = save_channel(channel, posts)
+    dates = [p["date"] for p in posts if p["date"]]
+    return {
+        "added": added,
+        "refreshed": len(fresh) - added,
+        "total": len(posts),
+        "with_text": with_text,
+        "newest_post": max(dates) if dates else None,
+    }
 
 
 def main() -> None:
@@ -226,22 +305,23 @@ def main() -> None:
     parser.add_argument("--min-chars", type=int, default=1, help="у clean-файл потрапляють пости з текстом не коротшим за N символів")
     parser.add_argument("--clean-only", action="store_true", help="не завантажувати, а переочистити вже збережений raw-файл")
     parser.add_argument("--since", default=None, help="збирати лише пости з цієї дати, YYYY-MM-DD")
+    parser.add_argument("--update", action="store_true", help="докачати лише нові пости до вже збережених (як кнопка «Оновити» у вебі)")
+    parser.add_argument("--days", type=int, default=30, help="з --update: скільки днів брати, якщо даних ще немає")
     args = parser.parse_args()
 
-    raw_path = ROOT / "data" / "raw" / f"{args.channel}.jsonl"
+    if args.update:
+        print(json.dumps(update_channel(args.channel, args.days, args.delay, args.max_pages), ensure_ascii=False, indent=2))
+        return
+
     if args.clean_only:
-        with raw_path.open(encoding="utf-8") as f:
-            posts = [json.loads(line) for line in f]
+        posts = load_raw(args.channel)
     else:
         posts = scrape(args.channel, args.max_pages, args.delay, args.since)
-        write_jsonl(raw_path, posts)
+        write_jsonl(raw_path(args.channel), posts)
 
-    clean = [clean_post(p) for p in posts if len(p["text"]) >= args.min_chars]
-    clean_path = ROOT / "data" / f"{args.channel}_clean.jsonl"
-    write_jsonl(clean_path, clean)
-
-    print(f"\nГотово: {len(posts)} постів -> {raw_path.relative_to(ROOT)}")
-    print(f"З текстом (>= {args.min_chars} симв.): {len(clean)} -> {clean_path.relative_to(ROOT)}")
+    with_text = save_channel(args.channel, posts, args.min_chars)
+    print(f"\nГотово: {len(posts)} постів -> {raw_path(args.channel).relative_to(ROOT)}")
+    print(f"З текстом (>= {args.min_chars} симв.): {with_text} -> {clean_path(args.channel).relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

@@ -132,7 +132,10 @@ class EquipmentItem(_Strict):
     )
     category: EquipmentCategory = Field(description=CATEGORY_DESCRIPTION)
     manufacturer: Optional[str] = Field(
-        description="Manufacturer or brand if explicitly stated (e.g. 'Silvus', 'Аргус-М'), otherwise null. Do not guess.",
+        description=(
+            "Manufacturer or brand if explicitly stated (e.g. 'Silvus', 'Аргус-М'), including a brand that is part "
+            "of the model name ('TYT-7500' -> 'TYT'), otherwise null. Do not guess; a country is not a manufacturer."
+        ),
     )
     quantity: Optional[float] = Field(
         gt=0,
@@ -173,17 +176,28 @@ class ExtractedPost(_Strict):
         description="One-sentence summary in Ukrainian, up to 300 characters.",
     )
     equipment: list[EquipmentItem] = Field(
-        description="Concrete equipment, devices or software products mentioned. Empty list if none. Do not include generic words like 'связь' or 'оборудование'.",
+        description=(
+            "Concrete equipment, devices or software products mentioned. A specific item the post is about counts even "
+            "without a model name ('убило новый генератор' -> 'генератор'); general mentions of equipment types "
+            "('генераторы в больницах', 'вышки связи') and generic words like 'связь' or 'оборудование' do not. Empty list if none."
+        ),
     )
     organizations: list[str] = Field(
         description=(
             "Companies, military units, projects, volunteer groups, alliances and channels named in the text, "
-            "spelled as in the text but in nominative case, without emoji (e.g. 'БЮРО 1440', '204 СПН \"Ахмат\"'). "
+            "spelled as in the text but in nominative case, without emoji and with obvious typos fixed "
+            "('Призрак Новоросии' -> 'Призрак Новороссии'), e.g. 'БЮРО 1440', '204 СПН \"Ахмат\"'. "
+            "For a company use its short name, the same as in manufacturer ('Московский завод осветительных установок Аргус-М' -> 'Аргус-М'). "
             "Exclude social platforms mentioned only as links or hashtags (Telegram, VK, Rutube, Дзен, MAX). Empty list if none."
         ),
     )
     locations: list[str] = Field(
-        description="Geographic places (countries, regions, cities, districts) in nominative case and full form: 'в Мск' -> 'Москва'. Empty list if none.",
+        description=(
+            "Geographic places (countries, regions, cities, districts) in nominative case and full form, "
+            "always in Russian even if the post is in another language: 'в Мск' -> 'Москва', 'Mariupol' -> 'Мариуполь'. "
+            "Include the place where equipment is made too, even if it appears only as an adjective or in a company name "
+            "('производства Украины' -> 'Украина', 'Московский завод' -> 'Москва'). Empty list if none."
+        ),
     )
     event_date: Optional[date] = Field(
         description=(
