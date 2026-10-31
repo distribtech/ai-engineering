@@ -36,6 +36,7 @@ GOLDEN_FILE = ROOT / "data" / "golden.json"
 
 OLLAMA_URL = config.OLLAMA_URL
 DEFAULT_MODEL = config.OLLAMA_MODEL
+MODELS = config.OLLAMA_MODELS
 NUM_CTX = 8192
 TIMEOUT_S = 300
 NETWORK_RETRIES = 2
@@ -69,6 +70,27 @@ def load_prompt(version: str) -> str:
 
 
 # ---------- виклик моделі ----------
+
+def installed_models() -> set[str] | None:
+    """Моделі, які є в Ollama; None, якщо Ollama недоступна."""
+    try:
+        resp = requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
+        resp.raise_for_status()
+    except requests.RequestException:
+        return None
+    names = set()
+    for m in resp.json().get("models", []):
+        names.add(m["name"])
+        if m["name"].endswith(":latest"):
+            names.add(m["name"].removesuffix(":latest"))
+    return names
+
+
+def list_models() -> list[dict]:
+    """Моделі з конфігу (OLLAMA_MODEL + OLLAMA_MODELS) з позначкою, чи вони встановлені."""
+    have = installed_models()
+    return [{"name": m, "installed": None if have is None else m in have, "default": m == DEFAULT_MODEL} for m in MODELS]
+
 
 def _chat(model: str, messages: list[dict], options: dict) -> dict:
     payload = {

@@ -462,7 +462,7 @@ def decorate_run(run: dict, golden: dict) -> dict:
 
 @app.get("/api/prompts")
 def api_prompts():
-    return jsonify(prompts=ex.list_prompts(), model=ex.DEFAULT_MODEL)
+    return jsonify(prompts=ex.list_prompts(), model=ex.DEFAULT_MODEL, models=ex.list_models())
 
 
 @app.get("/api/sources")
@@ -524,9 +524,12 @@ def api_extract():
     post = find_post(channel, post_id)
     if not post:
         return jsonify(error="Пост не знайдено серед збережених"), 404
+    model = str(body.get("model") or ex.DEFAULT_MODEL)
+    if model not in ex.MODELS:
+        return jsonify(error=f"Модель {model} не в списку OLLAMA_MODELS (.env)"), 400
     try:
         run = ex.extract(
-            post["text"], str(body.get("prompt_version") or "v2"),
+            post["text"], str(body.get("prompt_version") or "v2"), model=model,
             temperature=min(max(float(body.get("temperature", 0)), 0.0), 2.0),
             top_p=min(max(float(body.get("top_p", 0.9)), 0.0), 1.0),
             meta={"channel": channel, "post_id": post_id, "post_url": post["url"]},

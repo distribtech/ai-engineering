@@ -41,3 +41,10 @@ def ollama_url() -> str:
 
 OLLAMA_URL = ollama_url()
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3:8b")
+
+# Моделі, між якими можна вибирати у вкладці JSON і для замірів, через кому:
+#   OLLAMA_MODELS=qwen3:8b,gemma4:31b
+# Модель за замовчуванням (OLLAMA_MODEL) додається завжди й стоїть першою.
+OLLAMA_MODELS = list(dict.fromkeys(
+    [OLLAMA_MODEL] + [m.strip() for m in os.environ.get("OLLAMA_MODELS", "").split(",") if m.strip()]
+))

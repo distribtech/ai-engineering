@@ -191,6 +191,7 @@
     <div id="j-main" class="hidden">
       <div class="card">
         <div class="row">
+          <label class="small muted">Модель <select id="j-modelsel"></select></label>
           <label class="small muted">Промпт <select id="j-prompt"></select></label>
           <label class="small muted">temperature <input type="number" id="j-temp" value="0" min="0" max="2" step="0.1" style="width:70px"></label>
           <label class="small muted">top_p <input type="number" id="j-topp" value="0.9" min="0" max="1" step="0.05" style="width:70px"></label>
@@ -415,7 +416,12 @@ async function initJsonTab() {
     jPrompts = p.prompts;
     $("#j-prompt").replaceChildren(...jPrompts.map((x) => el("option", { value: x.version }, `${x.version} — ${x.label || "промпт"}`)));
     $("#j-prompt").value = jPrompts.at(-1)?.version || "";
-    $("#j-model").textContent = `Модель: ${p.model} (локальна, Ollama). Версії промптів і changelog — у папці prompts/.`;
+    $("#j-modelsel").replaceChildren(...p.models.map((m) => el("option", { value: m.name, disabled: m.installed === false },
+      m.name + (m.installed === false ? " — не встановлена" : ""))));
+    const saved = localStorage.getItem("hw1.model");
+    $("#j-modelsel").value = p.models.some((m) => m.name === saved && m.installed !== false) ? saved : p.model;
+    $("#j-modelsel").onchange = () => localStorage.setItem("hw1.model", $("#j-modelsel").value);
+    $("#j-model").textContent = `Локальні моделі через Ollama; список — OLLAMA_MODELS у .env. Версії промптів і changelog — у папці prompts/.`;
   }
   loadSources();
 }
@@ -524,7 +530,7 @@ $("#j-run").addEventListener("click", async () => {
   btn.disabled = true;
   $("#j-json").replaceChildren(el("span", { class: "spinner" }), "Модель працює… Перший запуск після простою може тривати до хвилини (завантаження моделі у відеопам'ять).");
   try {
-    const run = await post("/api/extract", { channel: jCur.channel, id: jCur.id, prompt_version: $("#j-prompt").value, temperature: Number($("#j-temp").value), top_p: Number($("#j-topp").value) });
+    const run = await post("/api/extract", { channel: jCur.channel, id: jCur.id, model: $("#j-modelsel").value, prompt_version: $("#j-prompt").value, temperature: Number($("#j-temp").value), top_p: Number($("#j-topp").value) });
     jRuns.unshift(run);
     showRun(run);
     loadSources();
