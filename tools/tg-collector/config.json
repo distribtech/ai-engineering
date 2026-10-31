@@ -1,0 +1,104 @@
+{
+  "output_dir": "output",
+  "channels": [
+    {
+      "username": "signalman_diary",
+      "title": "Дневник связиста Кибы 📡 💤",
+      "subscribers": "19.2K",
+      "first_id": 3,
+      "first_date": "2022-04-03",
+      "last_id": 4472,
+      "last_date": "2026-10-30",
+      "checked_at": "2026-10-31T14:27:52+00:00",
+      "folder": "volunteers"
+    },
+    {
+      "username": "military_engineer",
+      "title": "Инженерный Z фронт",
+      "subscribers": "28.5K",
+      "first_id": 2,
+      "first_date": "2023-03-17",
+      "last_id": 2109,
+      "last_date": "2026-10-31",
+      "checked_at": "2026-10-31T14:27:55+00:00",
+      "folder": "volunteers"
+    },
+    {
+      "username": "ghost_of_novorossia",
+      "title": "ПриZрак Новороссии",
+      "subscribers": "140K",
+      "first_id": 5,
+      "first_date": "2021-07-03",
+      "last_id": 44363,
+      "last_date": "2026-10-31",
+      "checked_at": "2026-10-31T14:27:57+00:00",
+      "folder": "volunteers"
+    },
+    {
+      "username": "reihatori",
+      "title": "Лина Булатникова 🤍 Помощь фронту 💙 Дроны \"Мурз\" ❤️ Стримы",
+      "subscribers": "22K",
+      "first_id": 11248,
+      "first_date": "2022-09-05",
+      "last_id": 35218,
+      "last_date": "2026-10-14",
+      "checked_at": "2026-10-31T14:27:59+00:00",
+      "folder": "volunteers"
+    },
+    {
+      "username": "surf_noise1",
+      "title": "РОКОТ",
+      "subscribers": "59.3K",
+      "first_id": 2,
+      "first_date": "2021-01-24",
+      "last_id": 55522,
+      "last_date": "2026-10-30",
+      "checked_at": "2026-10-31T14:28:01+00:00",
+      "folder": "volunteers"
+    },
+    {
+      "username": "makers2fron",
+      "title": "Умельцы-Фронту ©️",
+      "subscribers": "23.5K",
+      "first_id": 3,
+      "first_date": "2022-09-27",
+      "last_id": 12274,
+      "last_date": "2026-10-31",
+      "checked_at": "2026-10-31T14:28:03+00:00",
+      "folder": "volunteers"
+    },
+    {
+      "username": "vrachivyneodni_channel",
+      "title": "‼️ ВРАЧИ, ВЫ НЕ ОДНИ ‼️",
+      "subscribers": "30.5K",
+      "first_id": 2,
+      "first_date": "2020-04-15",
+      "last_id": 11599,
+      "last_date": "2026-10-31",
+      "checked_at": "2026-10-31T14:28:04+00:00",
+      "folder": "volunteers"
+    },
+    {
+      "username": "interbrigady2022",
+      "title": "Интербригады 2022",
+      "subscribers": "6.05K",
+      "first_id": 3,
+      "first_date": "2022-04-28",
+      "last_id": 9050,
+      "last_date": "2026-10-31",
+      "checked_at": "2026-10-31T14:28:07+00:00",
+      "folder": "volunteers"
+    },
+    {
+      "username": "ekipadobrovolec",
+      "title": "🛡 «Доброволец» | Экип Центр | Бронежилеты, военное снаряжение | Ratnik Tactical",
+      "subscribers": "1.28K",
+      "first_id": 6,
+      "first_date": "2023-07-04",
+      "last_id": 1706,
+      "last_date": "2026-10-28",
+      "checked_at": "2026-10-31T14:28:08+00:00",
+      "folder": "volunteers"
+    }
+  ]
+}

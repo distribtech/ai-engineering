@@ -36,6 +36,31 @@ python app/server.py            # http://127.0.0.1:8765
 - Перед роботою: `git pull`. Після: `git add`, `git commit`, `git push`.
 - **Оновлюйте канали («Оновити») на одному комп'ютері.** Clean-файли великі, і якщо оновити їх на обох машинах, `git pull` дасть конфлікт, який вручну не розібрати. Якщо конфлікт таки стався: `git checkout --theirs data/*_clean.jsonl` і знову «Оновити».
 
+## Окремий інструмент збору: TG Collector (`tools/tg-collector/`)
+
+Окремий веб-застосунок у корені репозиторію. Він лише завантажує **сирі** пости публічних каналів і не залежить від коду ДЗ1, тож його можна передати окремо.
+
+- Канали додаються посиланнями (`https://t.me/name`, `@name`) і групуються за папками.
+- Період вибирається подвійним повзунком, датами або кнопками «7 днів / 30 днів / 3 місяці / Рік / Уся історія». Кінець періоду в минулому знаходиться бінарним пошуком по id.
+- Результат: `output/<папка>/<канал>/posts.jsonl`, `channel.json`, `media/` (фото — за бажанням). Повторне завантаження доливає нові пости без дублів.
+
+```bash
+cd tools/tg-collector
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+.venv/bin/python app.py          # http://127.0.0.1:8770
+```
+
+**Як перенести зібране в ДЗ.** Формат `posts.jsonl` той самий, що в `data/raw/`, плюс поля `photo_urls` і `photos`. TG Collector **не маскує персональні дані**, тому clean-версію робимо тут:
+
+```bash
+cp ../tools/tg-collector/output/<папка>/<канал>/posts.jsonl data/raw/<канал>.jsonl
+python scripts/scrape_telegram.py <канал> --clean-only     # → data/<канал>_clean.jsonl з масками
+```
+
+Увага: `cp` **замінює** наявний `data/raw/<канал>.jsonl` і `data/<канал>_clean.jsonl`. Якщо в TG Collector завантажено менший період, старіші пости з ДЗ зникнуть.
+
+`output/` і `data/raw/` у git не потрапляють. Детально — [`tools/tg-collector/README.md`](../tools/tg-collector/README.md).
+
 ## Збір даних: `scripts/scrape_telegram.py`
 
 ### Як це працює

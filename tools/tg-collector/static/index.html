@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TG Collector</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --line:#dde1e6; --text:#1d2329; --muted:#6b7580; --accent:#2a6fdb; --bad:#c0392b; --ok:#1e8e4e; }
+  * { box-sizing: border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--text); }
+  header { padding:14px 20px; background:#1d2329; color:#fff; display:flex; gap:16px; align-items:baseline; flex-wrap:wrap; }
+  header h1 { margin:0; font-size:18px; }
+  header span { color:#aab3bd; font-size:13px; }
+  main { max-width:1100px; margin:0 auto; padding:16px; display:grid; gap:16px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:14px 16px; }
+  h2 { margin:0 0 10px; font-size:15px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  textarea, input[type=text], input[type=date], input[type=number] { font:inherit; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:#fff; }
+  textarea { width:100%; min-height:64px; resize:vertical; }
+  button { font:inherit; padding:6px 12px; border:1px solid var(--line); border-radius:6px; background:#fff; cursor:pointer; }
+  button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  button.danger { color:var(--bad); }
+  button:disabled { opacity:.5; cursor:default; }
+  .muted { color:var(--muted); font-size:12px; }
+  .err { color:var(--bad); white-space:pre-line; }
+  table { width:100%; border-collapse:collapse; }
+  td, th { padding:6px 6px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+  th { font-size:12px; color:var(--muted); font-weight:600; }
+  tr.folder td { background:#eef2f7; font-weight:600; }
+  .tag { display:inline-block; padding:1px 6px; border-radius:10px; background:#eef2f7; font-size:12px; }
+  /* подвійний повзунок */
+  .dual { position:relative; height:36px; margin:6px 4px 0; }
+  .dual .track { position:absolute; top:16px; left:0; right:0; height:4px; background:var(--line); border-radius:2px; }
+  .dual .fill { position:absolute; top:16px; height:4px; background:var(--accent); border-radius:2px; }
+  .dual input[type=range] { position:absolute; left:0; width:100%; top:6px; margin:0; background:none; pointer-events:none; -webkit-appearance:none; appearance:none; height:24px; }
+  .dual input[type=range]::-webkit-slider-thumb { pointer-events:auto; -webkit-appearance:none; width:20px; height:20px; border-radius:50%; background:#fff; border:2px solid var(--accent); cursor:pointer; }
+  .dual input[type=range]::-moz-range-thumb { pointer-events:auto; width:18px; height:18px; border-radius:50%; background:#fff; border:2px solid var(--accent); cursor:pointer; }
+  .scale { display:flex; justify-content:space-between; color:var(--muted); font-size:12px; }
+  .bar { height:8px; background:var(--line); border-radius:4px; overflow:hidden; }
+  .bar div { height:100%; background:var(--accent); width:0; transition:width .3s; }
+  pre#log { background:#11161b; color:#cfd8e3; padding:10px; border-radius:6px; max-height:280px; overflow:auto; font-size:12px; margin:8px 0 0; white-space:pre-wrap; }
+  nav.tabs { display:flex; gap:4px; margin-left:auto; }
+  nav.tabs button { background:transparent; color:#cfd8e3; border:1px solid #3a444f; }
+  nav.tabs button.active { background:#fff; color:#1d2329; border-color:#fff; }
+  .post { border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-top:10px; background:#fff; }
+  .post .head { display:flex; gap:10px; flex-wrap:wrap; align-items:baseline; font-size:12px; color:var(--muted); }
+  .post .text { white-space:pre-wrap; margin-top:6px; word-wrap:break-word; }
+  .post .photos { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .post .photos img { height:120px; border-radius:6px; border:1px solid var(--line); object-fit:cover; max-width:200px; }
+  .post .extra { margin-top:6px; font-size:12px; color:var(--muted); }
+  mark { background:#ffe58a; }
+  @media (max-width:700px) { .hide-sm { display:none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>TG Collector</h1>
+  <span>сирі пости публічних Telegram-каналів → папки на диску</span>
+  <nav class="tabs"><button data-tab="load" class="active">Завантаження</button><button data-tab="view">Перегляд</button></nav>
+</header>
+<main id="tab-load">
+
+<section>
+  <h2>1. Додати канали</h2>
+  <textarea id="refs" placeholder="Посилання або імена, по одному в рядку:&#10;https://t.me/signalman_diary&#10;@military_engineer"></textarea>
+  <div class="row" style="margin-top:8px">
+    <label>Папка: <input type="text" id="newFolder" list="folders" value="default" size="18"></label>
+    <datalist id="folders"></datalist>
+    <button class="primary" id="addBtn">Додати</button>
+    <span class="muted">Запрошення в папки (t.me/addlist/…) і приватні чати веб-версія не відкриває — лише публічні канали.</span>
+  </div>
+  <div id="addMsg" class="err"></div>
+</section>
+
+<section>
+  <h2>2. Канали</h2>
+  <div class="row" style="margin-bottom:6px">
+    <button id="selAll">Вибрати всі</button>
+    <button id="selNone">Зняти вибір</button>
+    <span class="muted" id="selInfo"></span>
+  </div>
+  <table>
+    <thead><tr><th></th><th>Канал</th><th class="hide-sm">Історія каналу</th><th>Завантажено</th><th>Папка</th><th></th></tr></thead>
+    <tbody id="channels"></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>3. Період</h2>
+  <div class="row">
+    <button data-preset="7">7 днів</button>
+    <button data-preset="30">30 днів</button>
+    <button data-preset="90">3 місяці</button>
+    <button data-preset="365">Рік</button>
+    <button data-preset="all">Уся історія</button>
+  </div>
+  <div class="dual">
+    <div class="track"></div><div class="fill" id="fill"></div>
+    <input type="range" id="rFrom" min="0" max="100" value="0">
+    <input type="range" id="rTo" min="0" max="100" value="100">
+  </div>
+  <div class="scale"><span id="scaleMin"></span><span id="scaleMax"></span></div>
+  <div class="row" style="margin-top:8px">
+    <label>З <input type="date" id="dFrom"></label>
+    <label>по <input type="date" id="dTo"></label>
+    <span class="muted" id="spanInfo"></span>
+  </div>
+  <p class="muted" style="margin:6px 0 0">Кілька каналів качаються по черзі: по сторінці (~20 постів) з кожного, фото — після текстів. Шкала — від найстарішого поста вибраних каналів до сьогодні. Якщо канал молодший за період, береться вся його історія. Дати — за UTC.</p>
+</section>
+
+<section>
+  <h2>4. Завантаження</h2>
+  <div class="row">
+    <label><input type="checkbox" id="photos"> завантажувати фото</label>
+    <label>пауза між запитами <input type="number" id="delay" value="1" min="0.3" max="10" step="0.1" style="width:64px"> с</label>
+    <button class="primary" id="startBtn">Завантажити вибрані</button>
+    <button class="danger" id="stopBtn" disabled>Зупинити</button>
+  </div>
+  <div class="bar" style="margin-top:10px"><div id="bar"></div></div>
+  <div class="muted" id="note"></div>
+  <table id="jobTable" style="margin-top:8px" hidden>
+    <thead><tr><th>Канал</th><th>Етап</th><th>Постів</th><th>Дійшли до</th><th>Фото</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <pre id="log"></pre>
+</section>
+
+<section>
+  <h2>5. Куди зберігати</h2>
+  <div class="row">
+    <input type="text" id="outDir" size="50">
+    <button id="saveOut">Зберегти</button>
+  </div>
+  <p class="muted" id="outAbs"></p>
+  <p class="muted">Структура: <code>&lt;папка&gt;/&lt;канал&gt;/posts.jsonl</code> (один пост на рядок), <code>channel.json</code> (опис каналу й історія завантажень), <code>media/</code> (фото). Повторне завантаження додає нові пости й оновлює старі, дублів немає.</p>
+</section>
+
+</main>
+
+<main id="tab-view" hidden>
+<section>
+  <div class="row">
+    <select id="vChannel"></select>
+    <input type="text" id="vQuery" placeholder="Пошук у тексті" size="24">
+    <label>з <input type="date" id="vFrom"></label>
+    <label>по <input type="date" id="vTo"></label>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <label><input type="checkbox" id="vPhotos"> лише з фото</label>
+    <label><input type="checkbox" id="vEmpty"> лише без тексту</label>
+    <select id="vOrder"><option value="desc">спершу нові</option><option value="asc">спершу старі</option></select>
+    <span class="muted" id="vInfo"></span>
+  </div>
+  <p class="muted" style="margin:6px 0 0">Лише перегляд: тексти показано так, як їх збережено з Telegram, без змін.</p>
+</section>
+<div id="vList"></div>
+<div class="row" style="margin:12px 0 30px; justify-content:center">
+  <button id="vPrev">← Попередні</button><span class="muted" id="vPage"></span><button id="vNext">Наступні →</button>
+</div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const DAY = 86400000;
+let state = { channels: [] };
+const selected = new Set(JSON.parse(localStorage.getItem('tgc.sel') || '[]'));
+let logLen = 0, polling = null;
+
+async function api(method, url, body) {
+  const r = await fetch(url, { method, headers: {'Content-Type': 'application/json'}, body: body && JSON.stringify(body) });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || r.statusText);
+  return data;
+}
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const iso = d => new Date(d).toISOString().slice(0, 10);
+const today = () => iso(Date.now());
+
+async function load() {
+  state = await api('GET', '/api/state');
+  for (const u of [...selected]) if (!state.channels.some(c => c.username === u)) selected.delete(u);
+  renderChannels();
+  $('outDir').value = state.output_dir;
+  $('outAbs').textContent = 'Повний шлях: ' + state.output_abs;
+  $('folders').innerHTML = [...new Set(state.channels.map(c => c.folder))].map(f => `<option value="${esc(f)}">`).join('');
+  updateScale();
+}
+
+function renderChannels() {
+  const byFolder = {};
+  for (const c of state.channels) (byFolder[c.folder] ??= []).push(c);
+  let html = '';
+  for (const folder of Object.keys(byFolder).sort()) {
+    const list = byFolder[folder];
+    const allSel = list.every(c => selected.has(c.username));
+    html += `<tr class="folder"><td><input type="checkbox" data-folder="${esc(folder)}" ${allSel ? 'checked' : ''}></td><td colspan="5">📁 ${esc(folder)} <span class="muted">(${list.length})</span></td></tr>`;
+    for (const c of list) {
+      const s = c.stats;
+      html += `<tr>
+        <td><input type="checkbox" data-ch="${esc(c.username)}" ${selected.has(c.username) ? 'checked' : ''}></td>
+        <td><b>${esc(c.title)}</b><br><a href="https://t.me/s/${esc(c.username)}" target="_blank" class="muted">@${esc(c.username)}</a>
+            ${c.subscribers ? `<span class="tag">${esc(c.subscribers)} підп.</span>` : ''}</td>
+        <td class="hide-sm">${c.first_date ? `${c.first_date} — ${c.last_date}<br><span class="muted">~${c.last_id} постів</span>` : '<span class="muted">ще не перевірено</span>'}</td>
+        <td>${s ? `${s.posts} постів${s.photos ? `, ${s.photos} фото` : ''}<br><span class="muted">${s.from} — ${s.to}</span>` : '<span class="muted">нічого</span>'}</td>
+        <td><input type="text" value="${esc(c.folder)}" data-move="${esc(c.username)}" list="folders" size="12"></td>
+        <td style="white-space:nowrap">${s ? `<button data-preview="${esc(c.username)}">Пости</button>` : ''}
+            <button class="danger" data-del="${esc(c.username)}" title="Прибрати зі списку (файли лишаться)">✕</button></td>
+      </tr>`;
+    }
+  }
+  $('channels').innerHTML = html || '<tr><td colspan="6" class="muted">Додайте канал вище.</td></tr>';
+  $('selInfo').textContent = `вибрано ${selected.size} з ${state.channels.length}`;
+  localStorage.setItem('tgc.sel', JSON.stringify([...selected]));
+}
+
+$('channels').addEventListener('change', async e => {
+  const t = e.target;
+  if (t.dataset.ch) { t.checked ? selected.add(t.dataset.ch) : selected.delete(t.dataset.ch); }
+  else if (t.dataset.folder !== undefined) {
+    for (const c of state.channels) if (c.folder === t.dataset.folder) t.checked ? selected.add(c.username) : selected.delete(c.username);
+  } else if (t.dataset.move) {
+    try { await api('PATCH', '/api/channels/' + t.dataset.move, { folder: t.value }); await load(); }
+    catch (err) { alert(err.message); }
+    return;
+  }
+  renderChannels(); updateScale();
+});
+$('channels').addEventListener('click', async e => {
+  const t = e.target;
+  if (t.dataset.del && confirm(`Прибрати @${t.dataset.del} зі списку? Завантажені файли лишаться на диску.`)) {
+    await api('DELETE', '/api/channels/' + t.dataset.del); selected.delete(t.dataset.del); await load();
+  }
+  if (t.dataset.preview) openViewer(t.dataset.preview);
+});
+$('selAll').onclick = () => { state.channels.forEach(c => selected.add(c.username)); renderChannels(); updateScale(); };
+$('selNone').onclick = () => { selected.clear(); renderChannels(); updateScale(); };
+
+$('addBtn').onclick = async () => {
+  $('addBtn').disabled = true; $('addMsg').textContent = 'Перевіряю канали…';
+  try {
+    const r = await api('POST', '/api/channels', { refs: $('refs').value, folder: $('newFolder').value });
+    r.added.forEach(u => selected.add(u));
+    $('addMsg').textContent = (r.added.length ? `Додано: ${r.added.map(u => '@' + u).join(', ')}\n` : '') + r.errors.join('\n');
+    if (r.added.length) $('refs').value = '';
+    await load();
+  } catch (err) { $('addMsg').textContent = err.message; }
+  $('addBtn').disabled = false;
+};
+
+// ---- період ----
+let scaleStart = Date.parse('2015-01-01');
+function updateScale() {
+  const chosen = state.channels.filter(c => selected.has(c.username) && c.first_date);
+  const pool = chosen.length ? chosen : state.channels.filter(c => c.first_date);
+  const first = pool.length ? Math.min(...pool.map(c => Date.parse(c.first_date))) : Date.now() - 365 * DAY;
+  const keepFrom = $('dFrom').value, keepTo = $('dTo').value;
+  scaleStart = first;
+  const days = Math.max(1, Math.round((Date.parse(today()) - first) / DAY));
+  $('rFrom').max = $('rTo').max = days;
+  $('scaleMin').textContent = iso(first);
+  $('scaleMax').textContent = today();
+  setRange(keepFrom || iso(first), keepTo || today());
+}
+const dayToDate = n => iso(scaleStart + n * DAY);
+const dateToDay = d => Math.round((Date.parse(d) - scaleStart) / DAY);
+function setRange(from, to) {
+  const max = +$('rTo').max;
+  let a = Math.min(Math.max(dateToDay(from), 0), max), b = Math.min(Math.max(dateToDay(to), 0), max);
+  if (a > b) [a, b] = [b, a];
+  $('rFrom').value = a; $('rTo').value = b;
+  syncFromSliders();
+}
+function syncFromSliders(moved) {
+  let a = +$('rFrom').value, b = +$('rTo').value;
+  if (a > b) { if (moved === 'from') $('rTo').value = b = a; else $('rFrom').value = a = b; }
+  const max = +$('rTo').max || 1;
+  $('fill').style.left = (a / max * 100) + '%';
+  $('fill').style.width = ((b - a) / max * 100) + '%';
+  $('dFrom').value = dayToDate(a); $('dTo').value = dayToDate(b);
+  $('spanInfo').textContent = `${b - a + 1} дн.` + (a === 0 && b === max ? ' — уся історія' : '');
+}
+$('rFrom').oninput = () => syncFromSliders('from');
+$('rTo').oninput = () => syncFromSliders('to');
+$('dFrom').onchange = $('dTo').onchange = () => setRange($('dFrom').value, $('dTo').value);
+document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => {
+  const p = b.dataset.preset;
+  setRange(p === 'all' ? iso(scaleStart) : iso(Date.now() - (p - 1) * DAY), today());
+});
+
+// ---- завантаження ----
+$('startBtn').onclick = async () => {
+  const channels = state.channels.filter(c => selected.has(c.username)).map(c => c.username);
+  const all = +$('rFrom').value === 0 && +$('rTo').value === +$('rTo').max;
+  try {
+    await api('POST', '/api/jobs', {
+      channels, from: all ? null : $('dFrom').value, to: $('dTo').value === today() ? null : $('dTo').value,
+      photos: $('photos').checked, delay: +$('delay').value,
+    });
+    $('log').textContent = ''; logLen = 0; poll();
+  } catch (err) { alert(err.message); }
+};
+$('stopBtn').onclick = () => api('POST', '/api/jobs/stop');
+
+async function poll() {
+  clearTimeout(polling);
+  const s = await api('GET', '/api/jobs?since=' + logLen).catch(() => null);
+  if (!s) { polling = setTimeout(poll, 3000); return; }
+  if (s.log_len < logLen) { $('log').textContent = ''; logLen = 0; }
+  if (s.log.length) { $('log').textContent += s.log.join('\n') + '\n'; $('log').scrollTop = 1e9; }
+  logLen = s.log_len;
+  $('bar').style.width = (s.progress * 100).toFixed(1) + '%';
+  $('note').textContent = s.note;
+  renderJob(s.results);
+  $('startBtn').disabled = s.running; $('stopBtn').disabled = !s.running;
+  if (s.running) polling = setTimeout(poll, 1000); else if (logLen) load();
+}
+
+function renderJob(results) {
+  const rows = Object.entries(results || {});
+  $('jobTable').hidden = !rows.length;
+  $('jobTable').tBodies[0].innerHTML = rows.map(([u, r]) => `<tr>
+    <td>@${esc(u)} <span class="muted">${esc(r.folder)}/</span></td>
+    <td>${r.stage === 'помилка' ? `<span class="err" title="${esc(r.error)}">помилка</span>` : esc(r.stage)}</td>
+    <td>${r.posts}</td><td>${esc(r.oldest || '')}</td>
+    <td>${r.photos_total ? `${r.photos_done} / ${r.photos_total}` : ''}</td></tr>`).join('');
+}
+
+// ---- вкладки ----
+function showTab(name) {
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  $('tab-load').hidden = name !== 'load';
+  $('tab-view').hidden = name !== 'view';
+  if (name === 'view') { fillViewerChannels(); loadPosts(); }
+  location.hash = name === 'view' ? 'view' : '';
+}
+document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+
+// ---- перегляд ----
+const PAGE = 50;
+let vOffset = 0, vTimer = null;
+function fillViewerChannels() {
+  const cur = $('vChannel').value || localStorage.getItem('tgc.view');
+  const withData = state.channels.filter(c => c.stats);
+  $('vChannel').innerHTML = withData.length
+    ? withData.map(c => `<option value="${esc(c.username)}">${esc(c.folder)} / @${esc(c.username)} (${c.stats.posts})</option>`).join('')
+    : '<option value="">нічого не завантажено</option>';
+  if (cur && withData.some(c => c.username === cur)) $('vChannel').value = cur;
+}
+function openViewer(u) { $('vChannel').value = u; localStorage.setItem('tgc.view', u); vOffset = 0; showTab('view'); }
+
+function highlight(text, q) {
+  if (!q) return esc(text);
+  const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+  return text.split(re).map((part, i) => i % 2 ? `<mark>${esc(part)}</mark>` : esc(part)).join('');
+}
+
+async function loadPosts() {
+  const u = $('vChannel').value;
+  if (!u) { $('vList').innerHTML = ''; $('vInfo').textContent = ''; return; }
+  localStorage.setItem('tgc.view', u);
+  const q = $('vQuery').value.trim();
+  const params = new URLSearchParams({ q, from: $('vFrom').value, to: $('vTo').value, order: $('vOrder').value,
+    photos: $('vPhotos').checked ? 1 : 0, empty: $('vEmpty').checked ? 1 : 0, offset: vOffset, limit: PAGE });
+  const r = await api('GET', `/api/posts/${u}?` + params);
+  $('vInfo').textContent = `знайдено ${r.total} з ${r.all}`;
+  $('vPage').textContent = r.total ? `${r.offset + 1}–${Math.min(r.offset + PAGE, r.total)} з ${r.total}` : '';
+  $('vPrev').disabled = r.offset === 0;
+  $('vNext').disabled = r.offset + PAGE >= r.total;
+  $('vList').innerHTML = r.posts.map(p => {
+    const photos = (p.photos || []).map(f => `<a href="/media/${esc(u)}/${esc(f.split('/').pop())}" target="_blank"><img loading="lazy" src="/media/${esc(u)}/${esc(f.split('/').pop())}"></a>`).join('');
+    const missing = (p.photo_urls || []).length - (p.photos || []).length;
+    const extra = [];
+    if (p.forwarded_from) extra.push(`переслано з: ${esc(p.forwarded_from)}`);
+    if (p.link_preview) extra.push(`прев'ю: <a href="${esc(p.link_preview.url)}" target="_blank">${esc(p.link_preview.title || p.link_preview.url)}</a>`);
+    if (p.document) extra.push(`документ: ${esc(p.document.title)} ${esc(p.document.size || '')}`);
+    if (p.links?.length) extra.push(`посилань: ${p.links.length}`);
+    return `<div class="post">
+      <div class="head">
+        <a href="${esc(p.url)}" target="_blank">#${p.id}</a>
+        <span>${esc((p.date || '').slice(0, 16).replace('T', ' '))} UTC</span>
+        ${p.views ? `<span>👁 ${esc(p.views)}</span>` : ''}
+        ${p.has_video ? '<span class="tag">відео</span>' : ''}
+        ${missing > 0 ? `<span class="tag" title="Фото не завантажені — увімкніть «завантажувати фото»">📷 ${missing} не завантажено</span>` : ''}
+      </div>
+      <div class="text">${p.text ? highlight(p.text, q) : '<span class="muted">без тексту</span>'}</div>
+      ${photos ? `<div class="photos">${photos}</div>` : ''}
+      ${extra.length ? `<div class="extra">${extra.join(' · ')}</div>` : ''}
+    </div>`;
+  }).join('') || '<p class="muted" style="text-align:center">Нічого не знайдено.</p>';
+}
+const reload = () => { vOffset = 0; loadPosts(); };
+$('vChannel').onchange = $('vFrom').onchange = $('vTo').onchange = $('vOrder').onchange = $('vPhotos').onchange = $('vEmpty').onchange = reload;
+$('vQuery').oninput = () => { clearTimeout(vTimer); vTimer = setTimeout(reload, 300); };
+$('vPrev').onclick = () => { vOffset = Math.max(0, vOffset - PAGE); loadPosts(); scrollTo(0, 0); };
+$('vNext').onclick = () => { vOffset += PAGE; loadPosts(); scrollTo(0, 0); };
+
+$('saveOut').onclick = async () => {
+  try { await api('POST', '/api/settings', { output_dir: $('outDir').value }); await load(); }
+  catch (err) { alert(err.message); }
+};
+
+load().then(() => { poll(); if (location.hash === '#view') showTab('view'); });
+</script>
+</body>
+</html>
