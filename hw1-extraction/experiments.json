@@ -1,0 +1,53 @@
+{
+  "_doc": "Конфіг замірів для python main.py і сторінки «Порівняння». Ціни — USD за 1M токенів (вхід, вихід), перевірено на openrouter.ai/models 31.10.2026; якщо OpenRouter повертає точну вартість запиту, береться вона.",
+  "models": [
+    "gemma4:31b",
+    "gemma3:4b",
+    "openrouter:deepseek/deepseek-v4.1-flash",
+    "openrouter:anthropic/claude-haiku-5.5",
+    "openrouter:openai/gpt-6-luna"
+  ],
+  "prompts": [
+    "v1",
+    "v2",
+    "v3"
+  ],
+  "sampling": {
+    "greedy": {
+      "temperature": 0.0,
+      "top_p": 1.0,
+      "_doc": "детерміновано: завжди найімовірніший токен"
+    },
+    "sampled": {
+      "temperature": 0.7,
+      "top_p": 0.9,
+      "_doc": "з випадковістю, як у чат-режимі"
+    }
+  },
+  "dataset": "dataset",
+  "prices_usd_per_1m": {
+    "openrouter:deepseek/deepseek-v4.1-flash": [
+      0.045,
+      0.5
+    ],
+    "openrouter:anthropic/claude-haiku-5.5": [
+      0.1,
+      0.5
+    ],
+    "openrouter:openai/gpt-6-luna": [
+      0.1,
+      0.5
+    ],
+    "openrouter:openai/gpt-4o-mini": [
+      0.15,
+      0.6
+    ]
+  },
+  "local_cost": {
+    "_doc": "Оцінка для локальних моделей: електроенергія = час відповіді x потужність GPU x тариф. Залізо не враховано.",
+    "gpu_power_w": 450,
+    "usd_per_kwh": 0.15
+  },
+  "provider_reasoning_effort": "low",
+  "_doc_reasoning": "Провайдерські моделі тут «міркують» перед відповіддю; low — щоб роздуми не з'їдали ліміт токенів і бюджет. Локальні моделі запускаються без міркування (think=false)."
+}

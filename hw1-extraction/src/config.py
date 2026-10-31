@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -48,3 +49,20 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3:8b")
 OLLAMA_MODELS = list(dict.fromkeys(
     [OLLAMA_MODEL] + [m.strip() for m in os.environ.get("OLLAMA_MODELS", "").split(",") if m.strip()]
 ))
+
+# Провайдерські моделі через OpenRouter (OpenAI-сумісний API). Ключ — лише в .env.
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "").strip()
+OPENROUTER_MODELS = [
+    "openrouter:" + m.strip().removeprefix("openrouter:")
+    for m in os.environ.get("OPENROUTER_MODELS", "openai/gpt-4o-mini").split(",") if m.strip()
+]
+
+# Усі моделі для вибору у вебі: локальні, потім провайдерські.
+ALL_MODELS = OLLAMA_MODELS + OPENROUTER_MODELS
+
+EXPERIMENTS_FILE = ROOT / "experiments.json"
+
+
+def load_experiments() -> dict:
+    """Конфіг замірів: моделі, версії промптів, пресети семплінгу, ціни (experiments.json)."""
+    return json.loads(EXPERIMENTS_FILE.read_text(encoding="utf-8"))

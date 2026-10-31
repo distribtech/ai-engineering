@@ -32,7 +32,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT))
 
 import scrape_telegram as tg  # noqa: E402
+from src import config as cfg  # noqa: E402
 from src import extract as ex  # noqa: E402
+from src import llm, runner  # noqa: E402
 from build_corpus import normalize  # noqa: E402
 from discover_channels import TOPICS  # noqa: E402
 
@@ -539,6 +541,142 @@ def api_extract():
     except RuntimeError as exc:
         return jsonify(error=str(exc)[:300]), 503
     return jsonify(decorate_run(run, ex.load_golden()))
+
+
+# ---------- «Порівняння»: матриця модель × промпт × семплінг ----------
+
+class CompareJob:
+    def __init__(self):
+        self.thread: threading.Thread | None = None
+        self.stop = threading.Event()
+        self.progress = runner.Progress()
+        self.params: dict = {}
+        self.error: str | None = None
+
+    @property
+    def running(self) -> bool:
+        return bool(self.thread and self.thread.is_alive())
+
+
+compare_job = CompareJob()
+
+
+def _compare_params(body: dict) -> dict:
+    exp = cfg.load_experiments()
+    models = [m for m in body.get("models") or exp["models"] if m in set(ex.MODELS) | set(exp["models"])]
+    prompts = [p for p in body.get("prompts") or exp["prompts"] if re.fullmatch(r"v\d+", p)]
+    sampling = [s for s in body.get("sampling") or list(exp["sampling"]) if s in exp["sampling"]]
+    dataset = body.get("set") if body.get("set") in ("dataset", "golden") else exp.get("dataset", "dataset")
+    return {"models": models, "prompts": prompts, "sampling": sampling, "set": dataset}
+
+
+@app.get("/api/compare/config")
+def api_compare_config():
+    exp = cfg.load_experiments()
+    models = []
+    for m in dict.fromkeys(exp["models"] + ex.MODELS):
+        ok, why = llm.is_available(m)
+        models.append({"name": m, "provider": llm.provider_of(m), "available": ok, "reason": why,
+                       "sampling": llm.supports_sampling(m) if ok else None, "in_experiments": m in exp["models"],
+                       "price": exp["prices_usd_per_1m"].get(m)})
+    return jsonify(models=models, prompts=[{"version": p["version"], "label": p["label"], "hash": p["hash"]} for p in ex.list_prompts()],
+                   sampling={k: v for k, v in exp["sampling"].items()}, defaults={"prompts": exp["prompts"], "set": exp.get("dataset")},
+                   reasoning_effort=exp.get("provider_reasoning_effort"))
+
+
+@app.post("/api/compare/plan")
+def api_compare_plan():
+    """Скільки викликів буде і скільки з них уже є в кеші."""
+    p = _compare_params(request.get_json(silent=True) or {})
+    jobs = runner.plan(p["models"], p["prompts"], p["sampling"], p["set"])
+    hashes = {x["version"]: x["hash"] for x in ex.list_prompts()}
+    cache = runner.load_cache()
+    cached = sum(1 for j in jobs if runner.job_key(j, hashes) in cache)
+    return jsonify(total=len(jobs), cached=cached, todo=len(jobs) - cached)
+
+
+@app.post("/api/compare/run")
+def api_compare_run():
+    if compare_job.running:
+        return jsonify(error="Порівняння вже йде"), 409
+    body = request.get_json(silent=True) or {}
+    p = _compare_params(body)
+    jobs = runner.plan(p["models"], p["prompts"], p["sampling"], p["set"])
+    compare_job.stop.clear()
+    compare_job.progress = runner.Progress()
+    compare_job.params = p
+    compare_job.error = None
+
+    def work():
+        try:
+            runner.run_jobs(jobs, use_cache=not body.get("no_cache"), progress=compare_job.progress,
+                            stop=compare_job.stop, log=lambda _m: None)
+            runner.save_metrics(runner.compute_metrics(jobs))
+        except Exception as exc:  # noqa: BLE001
+            compare_job.error = str(exc)[:300]
+
+    compare_job.thread = threading.Thread(target=work, daemon=True)
+    compare_job.thread.start()
+    return jsonify(ok=True)
+
+
+@app.get("/api/compare/status")
+def api_compare_status():
+    pr = compare_job.progress
+    return jsonify(running=compare_job.running, total=pr.total, done=pr.done, cached=pr.cached,
+                   failed_calls=pr.failed_calls, skipped=pr.skipped, current=pr.current,
+                   log=pr.log[-60:], params=compare_job.params, error=compare_job.error)
+
+
+@app.post("/api/compare/stop")
+def api_compare_stop():
+    compare_job.stop.set()
+    return jsonify(ok=True)
+
+
+@app.post("/api/compare/metrics")
+def api_compare_metrics():
+    p = _compare_params(request.get_json(silent=True) or {})
+    metrics = runner.compute_metrics(runner.plan(p["models"], p["prompts"], p["sampling"], p["set"]))
+    return jsonify(metrics)
+
+
+@app.post("/api/compare/report")
+def api_compare_report():
+    """Записує таблиці вибраних конфігурацій у REPORT.md (блок між маркерами METRICS)."""
+    import main as entry  # noqa: PLC0415 — main.py лежить у корені проєкту
+    p = _compare_params(request.get_json(silent=True) or {})
+    metrics = runner.compute_metrics(runner.plan(p["models"], p["prompts"], p["sampling"], p["set"]))
+    runner.save_metrics(metrics)
+    entry.update_report(runner.markdown_tables(metrics))
+    return jsonify(ok=True, configs=len(metrics["configs"]))
+
+
+# ---------- «Пайплайн»: кроки обробки поста (TODO занять 3-4) ----------
+
+@app.get("/api/pipeline")
+def api_pipeline():
+    runs = [r for r in ex.load_runs() if r.get("prompt_hash")]
+    n = len(runs)
+    statuses = [r["status"] for r in runs]
+    gr = [i for r in runs for i in (r.get("grounding") or [])]
+    metrics = json.loads(runner.METRICS_FILE.read_text(encoding="utf-8")) if runner.METRICS_FILE.exists() else {"configs": []}
+    inj = sum(c["injection_followed"] for c in metrics["configs"]), sum(c["injection_n"] for c in metrics["configs"])
+    providers = sorted({r["provider"] for r in runs})
+    return jsonify(
+        runs=n,
+        valid=statuses.count("valid"), repaired=statuses.count("repaired"), failed=statuses.count("failed"),
+        truncated=sum(1 for r in runs if r.get("truncated")),
+        grounding_warnings=len(gr), grounding_runs=sum(1 for r in runs if r.get("grounding")),
+        cost_usd=round(sum(r.get("cost_usd") or 0 for r in runs), 4),
+        providers=providers, models=sorted({r["model"] for r in runs}),
+        prompts=[{"version": p["version"], "hash": p["hash"], "label": p["label"],
+                  "tagged": "<post>" in p["user_template"]} for p in ex.list_prompts()],
+        injection_followed=inj[0], injection_total=inj[1],
+        configs=len(metrics["configs"]),
+        best=max(metrics["configs"], key=lambda c: c["accuracy"] or 0, default=None) and {
+            k: max(metrics["configs"], key=lambda c: c["accuracy"] or 0)[k] for k in ("model", "prompt", "sampling", "accuracy")},
+    )
 
 
 def main() -> None:

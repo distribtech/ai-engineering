@@ -102,3 +102,47 @@ def check_grounding(text: str, data: dict) -> list[Issue]:
 
 def as_dicts(issues: list[Issue]) -> list[dict]:
     return [asdict(x) for x in issues]
+
+
+# ---------- схема v2 ----------
+
+def _number_in_text(value: float, text: str) -> bool:
+    """14300 -> '14300' / '14 300' / '14.3к'; 80000 -> '80к' / '80 тыс'; 6 -> '6'."""
+    compact = _compact(text).casefold()
+    whole = int(value) if float(value).is_integer() else None
+    candidates = {str(value), str(value).replace(".", ",")}
+    if whole is not None:
+        candidates.add(str(whole))
+        for div, suffixes in ((1000, ("к", "k", "тыс", "т.р", "тр")), (1_000_000, ("м", "млн", "kk", "кк"))):
+            if whole % (div // 10) == 0 and whole >= div:
+                short = whole / div
+                short_s = str(int(short)) if short.is_integer() else str(short)
+                candidates |= {short_s + s for s in suffixes} | {short_s.replace(".", ",") + s for s in suffixes}
+    return any(c.casefold() in compact for c in candidates)
+
+
+def check_grounding_v2(text: str, data: dict | None) -> list[Issue]:
+    """Для схеми v2: чи є в тексті назви техніки, організації, кількості й суми.
+
+    Усе — warning: у v2 назви нормалізуються (відмінок, коротка назва компанії), тож неточний
+    збіг не обов'язково помилка. Але вигадана модель «ТА-58» чи сума 15000 замість 14300 тут видно.
+    Місця не перевіряємо: правила вимагають перекладу й розгортання ('Мск' -> 'Москва').
+    """
+    if not data:
+        return []
+    issues: list[Issue] = []
+    for i, e in enumerate(data.get("equipment") or []):
+        if not _name_in_text(e.get("name", ""), text):
+            issues.append(Issue("warning", f"equipment[{i}].name", e.get("name", ""), "назви техніки не знайдено в тексті"))
+        q = e.get("quantity")
+        if q is not None and not _number_in_text(q, text):
+            issues.append(Issue("warning", f"equipment[{i}].quantity", str(q), "кількості немає в тексті"))
+    for i, o in enumerate(data.get("organizations") or []):
+        if not _name_in_text(o, text):
+            issues.append(Issue("warning", f"organizations[{i}]", o, "організації не знайдено в тексті"))
+    for i, m in enumerate(data.get("money") or []):
+        for key in ("amount_min", "amount_max"):
+            v = m.get(key)
+            if v is not None and not _number_in_text(v, text):
+                issues.append(Issue("warning", f"money[{i}].{key}", str(v), "суми немає в тексті"))
+    return issues
