@@ -33,8 +33,29 @@ python main.py                  # або: make run
 | Кожен виклик моделі | `results/runs.jsonl` |
 | Веб: вкладки «JSON», «Пайплайн», «Порівняння» | `python app/server.py` → http://127.0.0.1:8765 |
 
+### Чеклист вимог ДЗ1
+
+| Вимога | Де закрито |
+|---|---|
+| Схема: ≥ 6 полів, enum, вкладений об'єкт / список | `src/schema.py` (9 полів, 6 enum, `EquipmentItem`, `Money`); розширена OSINT-схема — `src/schema_v3.py` |
+| Провайдерська модель через API зі structured output | `src/llm.py` → OpenRouter, `response_format: json_schema, strict` |
+| Retry і timeout | `src/llm.py`: timeout 300 с, 3 повтори при мережевих збоях, 429 і 5xx |
+| Усі 30 текстів прогнані, результати збережені | `python main.py` → кожна конфігурація на 30 постах `data/dataset.jsonl`; кожен виклик — `results/runs.jsonl` |
+| Локальна модель через спільний інтерфейс | `src/llm.py`: один `chat()` для Ollama і OpenRouter; модель вибирається рядком |
+| Семплінг у конфігу, ≥ 2 конфігурації | `experiments.json`: `greedy` (t=0, top_p=1) і `sampled` (t=0.7, top_p=0.9); у таблиці `REPORT.md` — окремі рядки |
+| Точність по полях, % валідних, p50/p95, $ на 1000 документів | `src/runner.py` → `results/metrics.json`, таблиці в `REPORT.md` |
+| ≥ 2 версії промпту з changelog | `prompts/v1.txt`, `v2.txt`, `v3.txt` + `prompts/CHANGELOG.md` |
+| Валідація + одна спроба виправлення, далі failed | `src/extract.py` (`valid` / `repaired` / `failed`) |
+| Лог моделі, версії промпту, семплінгу | `results/runs.jsonl`: `model`, `prompt_version`, `prompt_hash`, `sampling`, `options` |
+| Таблиця «модель × промпт × семплінг» | `REPORT.md`, розділ «Результати» |
+| Розбір 3–5 помилок | `REPORT.md`, розділ «Розбір помилок» |
+| Вибір для продакшну + умови зміни | `REPORT.md`, розділ «Вибір для продакшну» |
+| Запуск однією командою | `python main.py` або `make run` |
+| Ключі лише в `.env`, у репозиторії `.env.example` | `.env` у `.gitignore` |
+| Stretch: третя модель, регресійний прогін, кеш | 6 моделей; регресії між версіями промпту в `REPORT.md`; кеш відповідей у `src/runner.py` |
+
 ### Моделі
-- **Локальні (Ollama):** `gemma4:31b` (потрібна відеокарта на 24+ ГБ), `gemma3:4b` (звичайний ноутбук). Адреса й список — `OLLAMA_URL`, `OLLAMA_MODELS` у `.env`.
+- **Локальні (Ollama):** `gemma4:31b` (потрібна відеокарта на 24+ ГБ), `qwen3:8b` (на ній робилися перші заміри v1/v2), `gemma3:4b` (звичайний ноутбук). `gemma4:31b-32k` не проганяли окремо: ті самі ваги, лише довший контекст, а контекст ми задаємо в запиті. Адреса й список — `OLLAMA_URL`, `OLLAMA_MODELS` у `.env`.
 - **Провайдерські (OpenRouter, ключ `OPENROUTER_API_KEY`):** `deepseek/deepseek-v4.1-flash`, `anthropic/claude-haiku-5.5`, `openai/gpt-6-luna`. Список — `OPENROUTER_MODELS` у `.env`, ціни — `experiments.json`.
 - Haiku і gpt-6-luna **не приймають temperature/top_p**: для них семплінг не передається (у таблицях — `provider_default`), і порівняння семплінгу йде на deepseek і локальних моделях.
 - Усі три провайдерські моделі «міркують» перед відповіддю. Без обмеження міркування забирали весь ліміт токенів, і відповідь була порожньою (`finish_reason=length`). Тому `provider_reasoning_effort: low` в `experiments.json` і ліміт 8000 токенів. Локальні моделі працюють без міркування (`think: false`).

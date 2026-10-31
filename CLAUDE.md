@@ -26,7 +26,8 @@
 | Схема v3 OSINT (13 полів: реквізити, контакти, люди, ТТХ, стан техніки); у пайплайн ще не підключена | `src/schema_v3.py` → `schema_v3.json` | `python -m src.schema_v3`, `python -m tests.test_schema_v3` |
 | Вилучення: Ollama, structured output, перевірка схемою, 1 спроба виправлення, retry/timeout, лог | `src/extract.py` → `results/runs.jsonl` | через вкладку JSON або `ex.extract(...)` |
 | Налаштування (адреса Ollama, модель, `.env`) | `src/config.py`, `.env.example` | |
-| Промпти з версіями | `prompts/v1.txt`, `prompts/v2.txt`, `prompts/CHANGELOG.md` | нова версія — новий файл, старі не змінювати |
+| Промпти з версіями | `prompts/v1.txt`, `v2.txt`, `v3.txt` (+ `v3.user.txt` з тегами `<post>`), `prompts/CHANGELOG.md` | нова версія — новий файл, старі не змінювати |
+| Запуск усього: тести → матриця → метрики → `REPORT.md` | `main.py`, `src/runner.py`, `experiments.json` | `python main.py` / `make run`; веб — вкладки «Пайплайн», «Порівняння» |
 | Тести | `tests/test_schema.py`, `tests/test_schema_v3.py`, `tests/test_golden.py` | `python -m tests.test_schema`, `python -m tests.test_schema_v3`, `python -m tests.test_golden` |
 
 Усе запускається з папки `hw1-extraction/`. Детально — `hw1-extraction/README.md`.
@@ -41,25 +42,23 @@
 - `post_type`: подяка → `other`, анонс заходу → `event`, репліка без фактів → `personal`.
 - Порівняння з еталоном ігнорує регістр, лапки й розділові знаки.
 
-## Заміри на зараз (`qwen3:8b`, temperature 0, golden set)
-- v1: збіг з еталоном 0.59; v2: 0.81; 10/10 валідних з першої спроби у v2; p50 ≈ 6.5 с на Quadro P4000.
-- Найслабші поля у v2: `organizations` 0.63, `locations` 0.58 — кандидати на промпт v3.
-- Застереження: правила v2 і еталон писав той самий автор; два пости golden set бачили під час написання v2.
+## Заміри (31.10, повна матриця, `REPORT.md`)
+- `python main.py`: 6 моделей (gemma4:31b, qwen3:8b, gemma3:4b + OpenRouter deepseek-v4.1-flash, claude-haiku-5.5, gpt-6-luna) × v1/v2/v3 × greedy/sampled, 30 текстів + 3 injection; кеш у `results/runs.jsonl`.
+- Найкраще 0.92–0.94: gemma4:31b v3, haiku v3, gpt-6-luna v2/v3, deepseek v3. Вибір для продакшну: **gemma4:31b · v3 · greedy**.
+- Haiku і gpt-6-luna не приймають temperature/top_p (`provider_default`); провайдерам — `provider_reasoning_effort: low`, інакше міркування з'їдають ліміт токенів.
+- Ментор поставив 16/30 за першу здачу; зауваження (30 текстів, cloud-модель, семплінг, метрики, REPORT, помилки, вибір, README) закрито 31.10.
 
 ## Схема v3 (OSINT), рішення користувача 31.10
 - ДЗ1 робимо в `hw1-extraction` на даних, скопійованих з TG Collector. **Імена, позивні, @-імена й криптогаманці не маскуємо** (публічні дані). Картки, телефони й e-mail лишаються замаскованими.
 - Імена й гаманці тут — результат розвідки, тож їх не приховуємо, а перевіряємо, що LLM їх не спотворила й не вигадала: `src/grounding.py` (`check_grounding`), тест `python -m tests.test_grounding`.
 - Наступні кроки: перестати маскувати гаманці й @-імена в `scrape_telegram.py`, переразмітити golden set під v3, промпт v3, перемкнути `extract.py`.
 
-## Що лишилось по ДЗ1
-1. Провайдерська модель через API зі structured output (ключ у `.env`, не в git) і **спільний інтерфейс** з Ollama.
-2. Семплінг у конфігу, порівняти ≥ 2 конфігурації.
-3. Скрипт метрик: точність по полях на golden set, % валідних, latency p50/p95, вартість на 1000 документів; прогін усіх 30 текстів.
-4. `REPORT.md`: таблиця «модель × промпт × семплінг», розбір 3–5 помилок, вибір для продакшну.
-5. Запуск однією командою (`python main.py` або `make run`), README для перевіряючого.
+## Що далі
+- Переразмітити golden set під схему v3 (OSINT) і повторити порівняння; головна метрика — частка ідентифікаторів, що пройшли `src/grounding.py`.
+- Фільтр вставлених інструкцій для малих локальних моделей.
 
 ## Оточення
 - **Основний ПК** (Windows, Quadro P4000 8 GB): Windows-Ollama на **11435** (`OLLAMA_HOST=127.0.0.1:11435`), модель `qwen3:8b`. Ще одна Ollama 0.32.5 у WSL на **11434** — її використовують агенти OpenClaw і Hermes, **не зупиняти**.
-- **Ubuntu-ПК з RTX 5090 32 GB** (цей, `/home/administrator/ai-engineering`): Ollama на 11434 з `gemma4:31b`, `gemma3:4b`, `gemma4:31b-32k`; `qwen3:8b` **немає**. У локальному `.env`: `OLLAMA_MODEL=gemma4:31b`, `OLLAMA_MODELS=gemma4:31b,gemma3:4b,qwen3:8b`. Віртуальне середовище — `hw1-extraction/.venv`. Push — через SSH (`origin` = `git@github.com:distribtech/ai-engineering.git`).
+- **Ubuntu-ПК з RTX 5090 32 GB** (цей, `/home/administrator/ai-engineering`): Ollama на 11434 з `gemma4:31b`, `qwen3:8b`, `gemma3:4b`, `gemma4:31b-32k`. Ключ OpenRouter і `OPENROUTER_MODELS` — у локальному `hw1-extraction/.env`. У локальному `.env`: `OLLAMA_MODEL=gemma4:31b`, `OLLAMA_MODELS=gemma4:31b,gemma3:4b,qwen3:8b`. Віртуальне середовище — `hw1-extraction/.venv`. Push — через SSH (`origin` = `git@github.com:distribtech/ai-engineering.git`).
 - **Ноутбук / інший ПК**: Ollama на стандартному 11434 (`ollama pull qwen3:8b`, або менша модель через `OLLAMA_MODEL` у `.env`).
 - **Синхронізація:** `git pull` перед роботою, push після. Кнопку «Оновити» каналів тиснути лише на одному комп'ютері — інакше конфлікти у великих clean-файлах.

@@ -159,18 +159,19 @@ def run_jobs(jobs: list[Job], use_cache: bool = True, progress: Progress | None 
         if stop.is_set():
             return
         p = job.post
-        progress.current = f"{job.model} · {job.prompt} · {job.sampling} · #{p['post_id']}"
+        label = f"{job.model} · {job.prompt} · {job.sampling} · #{p['post_id']}" + (" (injection)" if p["kind"] == "injection" else "")
+        progress.current = label
         try:
             run = ex.extract(p["text"], job.prompt, model=job.model, temperature=job.temperature, top_p=job.top_p,
                              sampling=job.sampling, meta={
                                  "channel": p["channel"], "post_id": p["post_id"], "post_url": p["url"],
                                  "kind": p["kind"], "text_sha": text_sha(p["text"]),
                              })
-            msg = f"{progress.current}: {run['status']}, {run['latency_s']} с"
+            msg = f"{label}: {run['status']}, {run['latency_s']} с"
         except Exception as exc:  # noqa: BLE001 — один збій не зупиняє прогін
             with lock:
                 progress.failed_calls += 1
-            msg = f"{progress.current}: ПОМИЛКА {str(exc)[:160]}"
+            msg = f"{label}: ПОМИЛКА {str(exc)[:160]}"
         with lock:
             progress.done += 1
             progress.write(msg)

@@ -3,6 +3,7 @@
   "models": [
     "gemma4:31b",
     "gemma3:4b",
+    "qwen3:8b",
     "openrouter:deepseek/deepseek-v4.1-flash",
     "openrouter:anthropic/claude-haiku-5.5",
     "openrouter:openai/gpt-6-luna"
