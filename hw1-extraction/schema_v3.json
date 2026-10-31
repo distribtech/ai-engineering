@@ -1,0 +1,562 @@
+{
+  "$defs": {
+    "Contact": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/ContactType",
+          "description": "Kind of contact. A username ending in 'bot' is telegram_bot."
+        },
+        "value": {
+          "description": "The contact exactly as in the text: '@username', 't.me/channel', 'example.ru'. If the text has a mask such as [PHONE], [USER], [TG_LINK] or [EMAIL], copy the mask unchanged and never invent the real value.",
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        },
+        "purpose": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What to contact for, a few words in Russian as in the text ('для заказов', 'по вопросам сбора'); null if not stated.",
+          "title": "Purpose"
+        }
+      },
+      "required": [
+        "type",
+        "value",
+        "purpose"
+      ],
+      "title": "Contact",
+      "type": "object"
+    },
+    "ContactType": {
+      "enum": [
+        "telegram_user",
+        "telegram_bot",
+        "telegram_channel",
+        "phone",
+        "email",
+        "website",
+        "other"
+      ],
+      "title": "ContactType",
+      "type": "string"
+    },
+    "Currency": {
+      "enum": [
+        "RUB",
+        "USD",
+        "EUR",
+        "UAH",
+        "OTHER"
+      ],
+      "title": "Currency",
+      "type": "string"
+    },
+    "EquipmentCategory": {
+      "description": "Тип техніки. v2: дрони розбито на підтипи, додано мережі, IT, захист, спорядження, медицину, озброєння.",
+      "enum": [
+        "radio",
+        "phone",
+        "antenna_mast",
+        "cable",
+        "satellite",
+        "network",
+        "drone_fpv",
+        "drone_multirotor",
+        "drone_fixed_wing",
+        "drone_component",
+        "ew_sigint",
+        "optics",
+        "power",
+        "vehicle",
+        "it_hardware",
+        "software",
+        "tools",
+        "protective_gear",
+        "field_gear",
+        "medical",
+        "weapon_related",
+        "other"
+      ],
+      "title": "EquipmentCategory",
+      "type": "string"
+    },
+    "EquipmentItemV3": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Model or item name as written in the text, without quantity, e.g. 'ТА-57', 'TYT-7500', 'кабель полевой П-274м'.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "category": {
+          "$ref": "#/$defs/EquipmentCategory",
+          "description": "Equipment type. radio: radios, repeaters, MANET modules; phone: field/landline phones; antenna_mast: antennas, masts; cable: cables, field lines, reels; satellite: satellite terminals, Starlink; network: routers, switches, Wi-Fi bridges, mesh nodes; drone_fpv: FPV drones; drone_multirotor: recon quadcopters (Mavic, Matrice, Autel) and heavy multirotors; drone_fixed_wing: fixed-wing UAVs; drone_component: motors, video transmitters, controllers, goggles, drone batteries, frames; ew_sigint: EW/jammers, SIGINT, drone detectors, radars; optics: thermal and night sights, rangefinders, binoculars; power: generators, batteries not for drones, power banks, chargers, solar panels; vehicle: cars, motorcycles, ATVs and parts; it_hardware: laptops, tablets, smartphones, flash drives; software: apps, messengers, firmware, VPN; tools: tools, soldering, repair kits, consumables; protective_gear: body armor, helmets, plate carriers, ballistic glasses; field_gear: clothing, boots, chest rigs, sleeping bags, tents, trench candles; medical: first aid kits, tourniquets, dressings, medical devices, medicines; weapon_related: weapons, ammunition, drone drop munitions, detonators and their accessories; other: anything else."
+        },
+        "manufacturer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Manufacturer or brand if explicitly stated (e.g. 'Silvus', 'Аргус-М'), including a brand that is part of the model name ('TYT-7500' -> 'TYT'), otherwise null. Do not guess; a country is not a manufacturer.",
+          "title": "Manufacturer"
+        },
+        "quantity": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Number of items or amount only if a number is written explicitly ('10 шт.' -> 10, '6 км' -> 6); otherwise null.",
+          "title": "Quantity"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Unit for quantity: 'шт' for pieces, or the unit from the text ('км', 'м', 'кг'). Null if quantity is null.",
+          "title": "Unit"
+        },
+        "status": {
+          "$ref": "#/$defs/EquipmentStatus",
+          "description": "What happens to this item in the post. needed: money is being raised or the item is wanted; purchased: bought, ordered, on the way; delivered: handed over to a unit or person; in_use: used, tested, configured; damaged_lost: broken, destroyed, lost, captured; for_sale: offered or advertised; mentioned: anything else."
+        },
+        "recipient": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Unit, group or person the item is for or was handed to, as in organizations or persons ('204 СПН \"Ахмат\"', 'позывной Кот'); null if not stated.",
+          "title": "Recipient"
+        },
+        "specs": {
+          "description": "Technical characteristics stated for this item (range, frequency, power, capacity, size, weight, setup time). Empty list if none.",
+          "items": {
+            "$ref": "#/$defs/Spec"
+          },
+          "title": "Specs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "category",
+        "manufacturer",
+        "quantity",
+        "unit",
+        "status",
+        "recipient",
+        "specs"
+      ],
+      "title": "EquipmentItemV3",
+      "type": "object"
+    },
+    "EquipmentStatus": {
+      "enum": [
+        "needed",
+        "purchased",
+        "delivered",
+        "in_use",
+        "damaged_lost",
+        "for_sale",
+        "mentioned"
+      ],
+      "title": "EquipmentStatus",
+      "type": "string"
+    },
+    "Language": {
+      "enum": [
+        "ru",
+        "uk",
+        "en",
+        "mixed"
+      ],
+      "title": "Language",
+      "type": "string"
+    },
+    "Money": {
+      "additionalProperties": false,
+      "properties": {
+        "amount_min": {
+          "description": "Amount as a plain number: '14300 рублей' -> 14300, '80к' -> 80000, '1м' -> 1000000. For a range, the lower bound.",
+          "minimum": 0,
+          "title": "Amount Min",
+          "type": "number"
+        },
+        "amount_max": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Upper bound for a range ('от 80к до 120к' -> 120000), otherwise null.",
+          "title": "Amount Max"
+        },
+        "currency": {
+          "$ref": "#/$defs/Currency",
+          "description": "Currency; 'р', 'руб', 'к рублей' -> RUB."
+        },
+        "purpose": {
+          "$ref": "#/$defs/MoneyPurpose",
+          "description": "What the amount refers to."
+        }
+      },
+      "required": [
+        "amount_min",
+        "amount_max",
+        "currency",
+        "purpose"
+      ],
+      "title": "Money",
+      "type": "object"
+    },
+    "MoneyPurpose": {
+      "enum": [
+        "price",
+        "salary",
+        "purchase_total",
+        "fundraising",
+        "other"
+      ],
+      "title": "MoneyPurpose",
+      "type": "string"
+    },
+    "OrgRole": {
+      "enum": [
+        "recipient",
+        "supplier",
+        "partner",
+        "mentioned"
+      ],
+      "title": "OrgRole",
+      "type": "string"
+    },
+    "OrgType": {
+      "enum": [
+        "military_unit",
+        "volunteer_group",
+        "company",
+        "government",
+        "media",
+        "other"
+      ],
+      "title": "OrgType",
+      "type": "string"
+    },
+    "Organization": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Name in nominative case, without emoji, obvious typos fixed ('Призрак Новоросии' -> 'Призрак Новороссии'); a company by its short name ('Московский завод осветительных установок Аргус-М' -> 'Аргус-М'). Exclude social platforms mentioned only as links (Telegram, VK, Rutube, Дзен, MAX).",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/OrgType",
+          "description": "Kind of organization."
+        },
+        "role": {
+          "$ref": "#/$defs/OrgRole",
+          "description": "Role in this post: recipient of help or equipment, supplier/manufacturer/fundraiser, partner, or just mentioned."
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "role"
+      ],
+      "title": "Organization",
+      "type": "object"
+    },
+    "PaymentDetail": {
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "$ref": "#/$defs/PaymentMethod",
+          "description": "How the money is sent."
+        },
+        "provider": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Bank, service or crypto network as written, normalized: 'Сбербанк', 'Т-Банк', 'ЮMoney', 'USDT TRC20', 'BTC', 'TON'. Null if not stated.",
+          "title": "Provider"
+        },
+        "identifier": {
+          "description": "Card, phone, wallet address or link exactly as in the text, without spaces added or removed in the middle. If the text has a mask such as [CARD], [PHONE], [WALLET] or [PAY_LINK], copy the mask unchanged.",
+          "minLength": 1,
+          "title": "Identifier",
+          "type": "string"
+        },
+        "holder": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Name of the recipient or card holder exactly as written ('Тимур Максимович Г.'), null if not stated.",
+          "title": "Holder"
+        }
+      },
+      "required": [
+        "method",
+        "provider",
+        "identifier",
+        "holder"
+      ],
+      "title": "PaymentDetail",
+      "type": "object"
+    },
+    "PaymentMethod": {
+      "enum": [
+        "bank_card",
+        "sbp_phone",
+        "bank_account",
+        "crypto_wallet",
+        "payment_link",
+        "other"
+      ],
+      "title": "PaymentMethod",
+      "type": "string"
+    },
+    "Person": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Name, surname or call sign exactly as written, in nominative case ('Киба', 'Тимур Громов', 'позывной Кот'). Only people named in the text; not public figures mentioned in passing news.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/$defs/PersonRole",
+          "description": "Role of the person in the post."
+        }
+      },
+      "required": [
+        "name",
+        "role"
+      ],
+      "title": "Person",
+      "type": "object"
+    },
+    "PersonRole": {
+      "enum": [
+        "author",
+        "fundraiser",
+        "military",
+        "recipient",
+        "other"
+      ],
+      "title": "PersonRole",
+      "type": "string"
+    },
+    "PostType": {
+      "enum": [
+        "fundraising",
+        "delivery_report",
+        "equipment_review",
+        "news",
+        "event",
+        "announcement",
+        "advertisement",
+        "vacancy",
+        "request",
+        "guide",
+        "personal",
+        "humor",
+        "other"
+      ],
+      "title": "PostType",
+      "type": "string"
+    },
+    "Spec": {
+      "additionalProperties": false,
+      "properties": {
+        "parameter": {
+          "description": "Parameter name in Russian, lower case, as in the text: 'высота', 'дальность', 'частота', 'емкость', 'вес'.",
+          "minLength": 1,
+          "title": "Parameter",
+          "type": "string"
+        },
+        "value": {
+          "description": "Value with unit and qualifiers as written: 'до 12 м', '433 МГц', '10000 мАч', 'не более 5-10 минут'.",
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "parameter",
+        "value"
+      ],
+      "title": "Spec",
+      "type": "object"
+    },
+    "TechnicalContent": {
+      "enum": [
+        "specs",
+        "instruction",
+        "test_review",
+        "failure_damage",
+        "combat_use"
+      ],
+      "title": "TechnicalContent",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "post_type": {
+      "$ref": "#/$defs/PostType",
+      "description": "Main purpose of the post. Pick one. A post that mainly asks for money is fundraising even if it lists equipment."
+    },
+    "language": {
+      "$ref": "#/$defs/Language",
+      "description": "Main language of the text. Russian with English technical terms is still 'ru'; use 'mixed' only when whole sentences are in different languages."
+    },
+    "summary": {
+      "description": "One-sentence summary in Ukrainian, up to 300 characters.",
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Summary",
+      "type": "string"
+    },
+    "equipment": {
+      "description": "Concrete equipment, devices or software products mentioned. A specific item the post is about counts even without a model name ('убило новый генератор' -> 'генератор'); general mentions of equipment types ('генераторы в больницах') and generic words like 'связь' or 'оборудование' do not. Empty list if none.",
+      "items": {
+        "$ref": "#/$defs/EquipmentItemV3"
+      },
+      "title": "Equipment",
+      "type": "array"
+    },
+    "technical_content": {
+      "description": "Kinds of technical information present in the post. Empty list if none.",
+      "items": {
+        "$ref": "#/$defs/TechnicalContent"
+      },
+      "title": "Technical Content",
+      "type": "array"
+    },
+    "organizations": {
+      "description": "Organizations named in the text. Empty list if none.",
+      "items": {
+        "$ref": "#/$defs/Organization"
+      },
+      "title": "Organizations",
+      "type": "array"
+    },
+    "persons": {
+      "description": "People and call signs named in the text. Empty list if none.",
+      "items": {
+        "$ref": "#/$defs/Person"
+      },
+      "title": "Persons",
+      "type": "array"
+    },
+    "locations": {
+      "description": "Geographic places (countries, regions, cities, districts) in nominative case and full form, always in Russian: 'в Мск' -> 'Москва', 'Mariupol' -> 'Мариуполь'. Include the place where equipment is made ('производства Украины' -> 'Украина', 'Московский завод' -> 'Москва'). No metro stations. Empty list if none.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Locations",
+      "type": "array"
+    },
+    "contacts": {
+      "description": "Ways to contact the author or others: Telegram users, bots, channels, phones, e-mails, websites. Not payment details. Empty list if none.",
+      "items": {
+        "$ref": "#/$defs/Contact"
+      },
+      "title": "Contacts",
+      "type": "array"
+    },
+    "payment_details": {
+      "description": "Where to send money: cards, SBP phones, accounts, crypto wallets, payment links. Empty list if none.",
+      "items": {
+        "$ref": "#/$defs/PaymentDetail"
+      },
+      "title": "Payment Details",
+      "type": "array"
+    },
+    "money": {
+      "description": "Money amounts mentioned. Empty list if none.",
+      "items": {
+        "$ref": "#/$defs/Money"
+      },
+      "title": "Money",
+      "type": "array"
+    },
+    "event_date": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Date of the event the post is about, YYYY-MM-DD, only if day, month and year can be read from the text (the year may come from an event name such as 'Дронница-2026'). For a range use the start date. Relative dates -> null.",
+      "title": "Event Date"
+    },
+    "call_to_action": {
+      "description": "True if the post asks readers to do something: write to a bot or DM, apply, register, repost, send or donate.",
+      "title": "Call To Action",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "post_type",
+    "language",
+    "summary",
+    "equipment",
+    "technical_content",
+    "organizations",
+    "persons",
+    "locations",
+    "contacts",
+    "payment_details",
+    "money",
+    "event_date",
+    "call_to_action"
+  ],
+  "title": "ExtractedPostV3",
+  "type": "object"
+}
