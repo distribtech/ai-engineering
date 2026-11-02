@@ -3,3 +3,4 @@ output/
 .venv/
 __pycache__/
 *.tmp
+discover_report.json

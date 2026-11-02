@@ -55,6 +55,7 @@
 
 ## Сторона каналу (рішення користувача 02.11)
 - У TG Collector кожен канал має `side`: `hostile` (9 російських каналів, папка `volunteers`), `friendly` (українські: `ssternenko`, `serhiyprytula`, `prytulafoundation`, `victorydrones`, `armyofdrones`, папка `ua_volunteers`), `unknown` = як friendly. Зберігається в `config.json` і `channel.json`.
+- 02.11 «сніжним комом» (`tools/tg-collector/discover.py`) додано великі (≥30K) канали про техніку: 14 ворожих у папці `ru_tech` і 7 дружніх у `ua_tech`. Сторону визначено вручну за описом каналу, не за `side_hint`. Пости ще не завантажено.
 - `hw1-extraction/src/privacy.py`: ворожі — акаунти, гаманці, реквізити, імена, підрозділи, напрямки, місця передачі **витягуємо** (`intel_entities`); дружні — усе це **маскуємо** (`[PERSON]`, `[UNIT]`, `[DIRECTION]`, `[LOCATION]`, `[CARD]`…), фонди лишаються. Тест `python -m tests.test_privacy`.
 - Схема v3 отримала `frontline_directions` і `equipment[].delivery_place`.
 - ДЗ2 (RAG, дедлайн 13.11, `06 …/Домашнє завдання 2.docx`) вимагає публічний репозиторій без персональних даних: дружні тексти лише після маскування.

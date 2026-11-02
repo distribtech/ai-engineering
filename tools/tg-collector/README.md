@@ -53,8 +53,24 @@ python3 -m venv .venv
 |---|---|---|
 | `volunteers` | 🔴 ворожі | `signalman_diary`, `military_engineer`, `ghost_of_novorossia`, `reihatori`, `surf_noise1`, `makers2fron`, `vrachivyneodni_channel`, `interbrigady2022`, `ekipadobrovolec` |
 | `ua_volunteers` | 🟢 дружні | `ssternenko`, `serhiyprytula`, `prytulafoundation`, `victorydrones`, `armyofdrones` |
+| `ru_tech` | 🔴 ворожі | `uavdev`, `rusengineer`, `mestb_dobroj_voli`, `chadayevru`, `icpbtrubicon`, `fpv_vyzov`, `my_el_lab`, `rostecru`, `china3army`, `urga_74`, `combat_engineer`, `tacticalmedicinecourses`, `healertacmed`, `dva_majors` |
+| `ua_tech` | 🟢 дружні | `robert_magyar`, `zedigital`, `serhii_flash`, `k_2army`, `ukr_sof`, `kiber_boroshno`, `usf_army` |
 
 **Перевіряйте канали перед додаванням.** Популярні імена бувають зайняті підробками: `@wildhornets` і `@dzygaspaw` існують, але це канали з 6 підписниками й одним постом, а не справжні Wild Hornets і «Дзига». Колонка «Історія каналу» (дата першого поста, кількість постів) і кількість підписників допомагають це помітити.
+
+## Пошук нових каналів «сніжним комом»
+
+```bash
+.venv/bin/python discover.py                     # пороги: --min-subs 30000 --min-tech 3 --min-channels 2 --limit 150
+```
+
+`discover.py` збирає з уже завантажених постів посилання `t.me/…` і @згадки, рахує, скільки каналів і постів на кандидата посилаються (окремо з ворожих і дружніх), і перевіряє найчастіших через `t.me/s/<ім'я>`: підписники, мова, скільки з ~20 останніх постів про техніку (дрони, РЕБ/РЕР, зв'язок, оптика, техніка). Результат — `discover_report.json` (`selected` — великі й тематичні, `all` — усі перевірені).
+
+Скрипт лише пропонує кандидатів, до списку нічого не додає. Відбір робиться вручну:
+- **Новини, воєнкорів, пропаганду й офіційні відомства прибираємо**, навіть якщо в них часто трапляються слова про техніку.
+- **Сторону визначаємо за описом каналу.** `side_hint` (хто згадує + мова) — лише підказка. Українські канали посилаються на російські, щоб їх викривати (більшість російських кандидатів знайдено через `@victorydrones`). А деякі проукраїнські автори пишуть російською.
+
+Так 02.11 з 14 каналів знайдено 150 кандидатів, а після ручного відбору додано папки `ru_tech` і `ua_tech`.
 
 ## Що лежить на диску
 
