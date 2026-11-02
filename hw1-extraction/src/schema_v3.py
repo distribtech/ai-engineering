@@ -11,7 +11,9 @@
   - contacts[]: Telegram-акаунти, боти, канали, телефони, пошта, сайти;
   - payment_details[]: картки, СБП, рахунки, криптогаманці, платіжні посилання —
     щоб бачити, що той самий гаманець чи картка трапляється в різних каналах;
-  - technical_content[]: чи є в пості ТТХ, інструкція, тест, звіт про поломку, бойове застосування.
+  - technical_content[]: чи є в пості ТТХ, інструкція, тест, звіт про поломку, бойове застосування;
+  - frontline_directions[] і equipment[].delivery_place: напрямки фронту й місця передачі техніки.
+    Для ворожих каналів їх витягуємо, для дружніх — маскуємо (src/privacy.py).
 
 Персональні дані. Імена, позивні, @-імена Telegram і криптогаманці беремо як є: це публічна
 інформація з відкритих каналів, і саме вона потрібна, щоб бачити, що той самий гаманець чи
@@ -109,6 +111,12 @@ class EquipmentItemV3(_Strict):
         description=(
             "Unit, group or person the item is for or was handed to, as in organizations or persons "
             "('204 СПН \"Ахмат\"', 'позывной Кот'); null if not stated."
+        ),
+    )
+    delivery_place: Optional[str] = Field(
+        description=(
+            "Where the item was handed over or is to be delivered (city, district, frontline direction, position) "
+            "as written in the text, in Russian nominative case ('Покровское направление', 'Горловка'); null if not stated."
         ),
     )
     specs: list[Spec] = Field(
@@ -250,6 +258,13 @@ class ExtractedPostV3(_Strict):
             "Geographic places (countries, regions, cities, districts) in nominative case and full form, always in Russian: "
             "'в Мск' -> 'Москва', 'Mariupol' -> 'Мариуполь'. Include the place where equipment is made "
             "('производства Украины' -> 'Украина', 'Московский завод' -> 'Москва'). No metro stations. Empty list if none."
+        ),
+    )
+    frontline_directions: list[str] = Field(
+        description=(
+            "Frontline directions or sectors named in the text, in Russian nominative case: "
+            "'на Покровском направлении' -> 'Покровское направление', 'ЗСУ на Херсонском' -> 'Херсонское направление'. "
+            "Empty list if none."
         ),
     )
     contacts: list[Contact] = Field(description="Ways to contact the author or others: Telegram users, bots, channels, phones, e-mails, websites. Not payment details. Empty list if none.")

@@ -5,7 +5,7 @@
 ## Що це за репозиторій
 - Матеріали курсу AI Engineering (папки `01 …`, `02 …`, `03 …`, PDF) і домашні завдання.
 - **ДЗ1** — у `hw1-extraction/`: сервіс, який витягує структуровані дані з «брудних» текстів за схемою, порівнює провайдерську й локальну моделі та обґрунтовує вибір. Повний текст завдання: `01 …/Домашнє завдання 1.docx`. Дедлайн **27.10, 23:59**.
-- `tools/tg-collector/` — окремий веб-застосунок (Flask, порт 8770) для завантаження **сирих** постів публічних Telegram-каналів за період у папки `output/<папка>/<канал>/`. Не залежить від ДЗ1, PII не маскує, `output/` не в git. Детально — його `README.md`.
+- `tools/tg-collector/` — окремий веб-застосунок (Flask, порт 8770) для завантаження **сирих** постів публічних Telegram-каналів за період у папки `output/<папка>/<канал>/`; у кожного каналу є сторона `hostile` / `friendly` / `unknown`. Не залежить від ДЗ1, PII не маскує, `output/` не в git. Детально — його `README.md`.
 - `tools/robotdreams-video-extension/` — розширення Chrome для завантаження відео уроків. Це копія оригіналу з WSL основного комп'ютера (`~/projects/robotdreams-video-extension`).
 - `03 …/ai-engineeering-2/` — чужий клон репозиторію курсу (`andbilous/ai-engineeering-2`) з власним `.git`. **Не комітити** в цей репозиторій.
 - Репозиторій приватний: `github.com/distribtech/ai-engineering`. Перед здачею ментор має отримати доступ (зробити публічним або додати collaborator).
@@ -28,7 +28,7 @@
 | Налаштування (адреса Ollama, модель, `.env`) | `src/config.py`, `.env.example` | |
 | Промпти з версіями | `prompts/v1.txt`, `v2.txt`, `v3.txt` (+ `v3.user.txt` з тегами `<post>`), `prompts/CHANGELOG.md` | нова версія — новий файл, старі не змінювати |
 | Запуск усього: тести → матриця → метрики → `REPORT.md` | `main.py`, `src/runner.py`, `experiments.json` | `python main.py` / `make run`; веб — вкладки «Пайплайн», «Порівняння» |
-| Тести | `tests/test_schema.py`, `tests/test_schema_v3.py`, `tests/test_golden.py` | `python -m tests.test_schema`, `python -m tests.test_schema_v3`, `python -m tests.test_golden` |
+| Тести | `tests/test_schema.py`, `tests/test_schema_v3.py`, `tests/test_golden.py`, `tests/test_grounding.py`, `tests/test_privacy.py` | `python -m tests.test_schema`, `python -m tests.test_schema_v3`, `python -m tests.test_golden` |
 
 Усе запускається з папки `hw1-extraction/`. Детально — `hw1-extraction/README.md`.
 
@@ -52,6 +52,12 @@
 - ДЗ1 робимо в `hw1-extraction` на даних, скопійованих з TG Collector. **Імена, позивні, @-імена й криптогаманці не маскуємо** (публічні дані). Картки, телефони й e-mail лишаються замаскованими.
 - Імена й гаманці тут — результат розвідки, тож їх не приховуємо, а перевіряємо, що LLM їх не спотворила й не вигадала: `src/grounding.py` (`check_grounding`), тест `python -m tests.test_grounding`.
 - Наступні кроки: перестати маскувати гаманці й @-імена в `scrape_telegram.py`, переразмітити golden set під v3, промпт v3, перемкнути `extract.py`.
+
+## Сторона каналу (рішення користувача 02.11)
+- У TG Collector кожен канал має `side`: `hostile` (9 російських каналів, папка `volunteers`), `friendly` (українські: `ssternenko`, `serhiyprytula`, `prytulafoundation`, `victorydrones`, `armyofdrones`, папка `ua_volunteers`), `unknown` = як friendly. Зберігається в `config.json` і `channel.json`.
+- `hw1-extraction/src/privacy.py`: ворожі — акаунти, гаманці, реквізити, імена, підрозділи, напрямки, місця передачі **витягуємо** (`intel_entities`); дружні — усе це **маскуємо** (`[PERSON]`, `[UNIT]`, `[DIRECTION]`, `[LOCATION]`, `[CARD]`…), фонди лишаються. Тест `python -m tests.test_privacy`.
+- Схема v3 отримала `frontline_directions` і `equipment[].delivery_place`.
+- ДЗ2 (RAG, дедлайн 13.11, `06 …/Домашнє завдання 2.docx`) вимагає публічний репозиторій без персональних даних: дружні тексти лише після маскування.
 
 ## Що далі
 - Переразмітити golden set під схему v3 (OSINT) і повторити порівняння; головна метрика — частка ідентифікаторів, що пройшли `src/grounding.py`.

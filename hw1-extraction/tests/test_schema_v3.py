@@ -18,7 +18,7 @@ POST_915 = {
     "summary": "Московський завод «Аргус-М» пропонує недорогі телескопічні щогли висотою до 12 м для ретрансляторів і камер спостереження.",
     "equipment": [{
         "name": "мачта телескопическая", "category": "antenna_mast", "manufacturer": "Аргус-М",
-        "quantity": None, "unit": None, "status": "for_sale", "recipient": None,
+        "quantity": None, "unit": None, "status": "for_sale", "recipient": None, "delivery_place": None,
         "specs": [
             {"parameter": "высота", "value": "до 12 м"},
             {"parameter": "длина в сложенном виде", "value": "не более 2.2 м"},
@@ -29,6 +29,7 @@ POST_915 = {
     "organizations": [{"name": "Аргус-М", "type": "company", "role": "supplier"}],
     "persons": [],
     "locations": ["Москва"],
+    "frontline_directions": [],
     "contacts": [{"type": "telegram_user", "value": "[USER]", "purpose": "для заказов"}],
     "payment_details": [],
     "money": [],
@@ -43,12 +44,13 @@ FUNDRAISING = {
     "summary": "Автор збирає 120 тис. рублів на два тепловізори для підрозділу «Кот».",
     "equipment": [{
         "name": "тепловизор", "category": "optics", "manufacturer": None, "quantity": 2, "unit": "шт",
-        "status": "needed", "recipient": "позывной Кот", "specs": [],
+        "status": "needed", "recipient": "позывной Кот", "delivery_place": "Покровское направление", "specs": [],
     }],
     "technical_content": [],
     "organizations": [],
     "persons": [{"name": "Кот", "role": "military"}, {"name": "Иван П.", "role": "fundraiser"}],
     "locations": [],
+    "frontline_directions": ["Покровское направление"],
     "contacts": [{"type": "telegram_bot", "value": "@example_help_bot", "purpose": "по вопросам сбора"}],
     "payment_details": [
         {"method": "bank_card", "provider": "Сбербанк", "identifier": "[CARD]", "holder": "Иван П."},

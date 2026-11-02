@@ -8,6 +8,8 @@
   :root { --bg:#f6f7f9; --card:#fff; --line:#dde1e6; --text:#1d2329; --muted:#6b7580; --accent:#2a6fdb; --bad:#c0392b; --ok:#1e8e4e; }
   * { box-sizing: border-box; }
   [hidden] { display:none !important; }
+  select.side-hostile { border-color:#c0392b; color:#c0392b; }
+  select.side-friendly { border-color:#1e8e4e; color:#1e8e4e; }
   body { margin:0; font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--text); }
   header { padding:14px 20px; background:#1d2329; color:#fff; display:flex; gap:16px; align-items:baseline; flex-wrap:wrap; }
   header h1 { margin:0; font-size:18px; }
@@ -66,6 +68,9 @@
   <textarea id="refs" placeholder="Посилання або імена, по одному в рядку:&#10;https://t.me/signalman_diary&#10;@military_engineer"></textarea>
   <div class="row" style="margin-top:8px">
     <label>Папка: <input type="text" id="newFolder" list="folders" value="default" size="18"></label>
+    <label>Сторона: <select id="newSide">
+      <option value="hostile">ворожий</option><option value="friendly">дружній</option><option value="unknown" selected>не визначено</option>
+    </select></label>
     <datalist id="folders"></datalist>
     <button class="primary" id="addBtn">Додати</button>
     <span class="muted">Запрошення в папки (t.me/addlist/…) і приватні чати веб-версія не відкриває — лише публічні канали.</span>
@@ -81,7 +86,7 @@
     <span class="muted" id="selInfo"></span>
   </div>
   <table>
-    <thead><tr><th></th><th>Канал</th><th class="hide-sm">Історія каналу</th><th>Завантажено</th><th>Папка</th><th></th></tr></thead>
+    <thead><tr><th></th><th>Канал</th><th class="hide-sm">Історія каналу</th><th>Завантажено</th><th>Папка / сторона</th><th></th></tr></thead>
     <tbody id="channels"></tbody>
   </table>
 </section>
@@ -161,6 +166,7 @@
 </main>
 <script>
 const $ = id => document.getElementById(id);
+const SIDE_LABEL = { hostile: '🔴 ворожий', friendly: '🟢 дружній', unknown: '⚪ не визначено' };
 const DAY = 86400000;
 let state = { channels: [] };
 const selected = new Set(JSON.parse(localStorage.getItem('tgc.sel') || '[]'));
@@ -202,7 +208,8 @@ function renderChannels() {
             ${c.subscribers ? `<span class="tag">${esc(c.subscribers)} підп.</span>` : ''}</td>
         <td class="hide-sm">${c.first_date ? `${c.first_date} — ${c.last_date}<br><span class="muted">~${c.last_id} постів</span>` : '<span class="muted">ще не перевірено</span>'}</td>
         <td>${s ? `${s.posts} постів${s.photos ? `, ${s.photos} фото` : ''}<br><span class="muted">${s.from} — ${s.to}</span>` : '<span class="muted">нічого</span>'}</td>
-        <td><input type="text" value="${esc(c.folder)}" data-move="${esc(c.username)}" list="folders" size="12"></td>
+        <td><input type="text" value="${esc(c.folder)}" data-move="${esc(c.username)}" list="folders" size="12">
+            <select data-side="${esc(c.username)}" class="side-${esc(c.side || 'unknown')}">${['hostile','friendly','unknown'].map(s => `<option value="${s}" ${(c.side || 'unknown') === s ? 'selected' : ''}>${SIDE_LABEL[s]}</option>`).join('')}</select></td>
         <td style="white-space:nowrap">${s ? `<button data-preview="${esc(c.username)}">Пости</button>` : ''}
             <button class="danger" data-del="${esc(c.username)}" title="Прибрати зі списку (файли лишаться)">✕</button></td>
       </tr>`;
@@ -218,6 +225,10 @@ $('channels').addEventListener('change', async e => {
   if (t.dataset.ch) { t.checked ? selected.add(t.dataset.ch) : selected.delete(t.dataset.ch); }
   else if (t.dataset.folder !== undefined) {
     for (const c of state.channels) if (c.folder === t.dataset.folder) t.checked ? selected.add(c.username) : selected.delete(c.username);
+  } else if (t.dataset.side) {
+    try { await api('PATCH', '/api/channels/' + t.dataset.side, { side: t.value }); await load(); }
+    catch (err) { alert(err.message); }
+    return;
   } else if (t.dataset.move) {
     try { await api('PATCH', '/api/channels/' + t.dataset.move, { folder: t.value }); await load(); }
     catch (err) { alert(err.message); }
@@ -238,7 +249,7 @@ $('selNone').onclick = () => { selected.clear(); renderChannels(); updateScale()
 $('addBtn').onclick = async () => {
   $('addBtn').disabled = true; $('addMsg').textContent = 'Перевіряю канали…';
   try {
-    const r = await api('POST', '/api/channels', { refs: $('refs').value, folder: $('newFolder').value });
+    const r = await api('POST', '/api/channels', { refs: $('refs').value, folder: $('newFolder').value, side: $('newSide').value });
     r.added.forEach(u => selected.add(u));
     $('addMsg').textContent = (r.added.length ? `Додано: ${r.added.map(u => '@' + u).join(', ')}\n` : '') + r.errors.join('\n');
     if (r.added.length) $('refs').value = '';
@@ -342,7 +353,7 @@ function fillViewerChannels() {
   const cur = $('vChannel').value || localStorage.getItem('tgc.view');
   const withData = state.channels.filter(c => c.stats);
   $('vChannel').innerHTML = withData.length
-    ? withData.map(c => `<option value="${esc(c.username)}">${esc(c.folder)} / @${esc(c.username)} (${c.stats.posts})</option>`).join('')
+    ? withData.map(c => `<option value="${esc(c.username)}">${SIDE_LABEL[c.side || 'unknown'].split(' ')[0]} ${esc(c.folder)} / @${esc(c.username)} (${c.stats.posts})</option>`).join('')
     : '<option value="">нічого не завантажено</option>';
   if (cur && withData.some(c => c.username === cur)) $('vChannel').value = cur;
 }

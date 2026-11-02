@@ -27,8 +27,8 @@ START, END = "<!-- METRICS:START -->", "<!-- METRICS:END -->"
 
 
 def run_tests() -> None:
-    from tests import test_golden, test_grounding, test_schema, test_schema_v3
-    for mod in (test_schema, test_schema_v3, test_golden, test_grounding):
+    from tests import test_golden, test_grounding, test_privacy, test_schema, test_schema_v3
+    for mod in (test_schema, test_schema_v3, test_golden, test_grounding, test_privacy):
         for name in dir(mod):
             if name.startswith("test_"):
                 getattr(mod, name)()

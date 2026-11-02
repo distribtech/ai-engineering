@@ -153,6 +153,18 @@
           "description": "Unit, group or person the item is for or was handed to, as in organizations or persons ('204 СПН \"Ахмат\"', 'позывной Кот'); null if not stated.",
           "title": "Recipient"
         },
+        "delivery_place": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where the item was handed over or is to be delivered (city, district, frontline direction, position) as written in the text, in Russian nominative case ('Покровское направление', 'Горловка'); null if not stated.",
+          "title": "Delivery Place"
+        },
         "specs": {
           "description": "Technical characteristics stated for this item (range, frequency, power, capacity, size, weight, setup time). Empty list if none.",
           "items": {
@@ -170,6 +182,7 @@
         "unit",
         "status",
         "recipient",
+        "delivery_place",
         "specs"
       ],
       "title": "EquipmentItemV3",
@@ -499,6 +512,14 @@
       "title": "Locations",
       "type": "array"
     },
+    "frontline_directions": {
+      "description": "Frontline directions or sectors named in the text, in Russian nominative case: 'на Покровском направлении' -> 'Покровское направление', 'ЗСУ на Херсонском' -> 'Херсонское направление'. Empty list if none.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Frontline Directions",
+      "type": "array"
+    },
     "contacts": {
       "description": "Ways to contact the author or others: Telegram users, bots, channels, phones, e-mails, websites. Not payment details. Empty list if none.",
       "items": {
@@ -551,6 +572,7 @@
     "organizations",
     "persons",
     "locations",
+    "frontline_directions",
     "contacts",
     "payment_details",
     "money",

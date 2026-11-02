@@ -23,6 +23,11 @@ import scraper as tg
 ROOT = Path(__file__).resolve().parent
 CONFIG_FILE = ROOT / "config.json"
 FOLDER_RE = re.compile(r"^[\w\- .]{1,60}$")
+# Сторона каналу: від неї залежить, що робити з персональними даними далі в пайплайні.
+#   hostile  - ворожий (допомагає РФ): ідентифікатори (акаунти, гаманці, реквізити) показуємо максимально;
+#   friendly - дружній (українські волонтери): усе персональне деперсоналізуємо;
+#   unknown  - ще не визначено: обробляємо як friendly (безпечніше).
+SIDES = ("hostile", "friendly", "unknown")
 
 app = Flask(__name__, static_folder=None)
 lock = threading.Lock()
@@ -51,6 +56,23 @@ def output_root(cfg: dict) -> Path:
 
 def channel_dir(cfg: dict, ch: dict) -> Path:
     return output_root(cfg) / ch["folder"] / ch["username"]
+
+
+def clean_side(value) -> str:
+    value = (value or "unknown").strip().lower()
+    if value not in SIDES:
+        raise ValueError(f"сторона: одне з {', '.join(SIDES)}")
+    return value
+
+
+def write_side(cfg: dict, ch: dict) -> None:
+    """Сторона дублюється в channel.json папки каналу, щоб її бачили ті, хто копіює лише папку."""
+    folder = channel_dir(cfg, ch)
+    if (folder / "channel.json").exists():
+        with tg.FILE_LOCK:
+            meta = tg.read_meta(folder)
+            meta["side"] = ch.get("side", "unknown")
+            tg.write_json(folder / "channel.json", meta)
 
 
 def clean_folder(name: str) -> str:
@@ -119,6 +141,7 @@ def run_job(usernames: list[str], date_from, date_to, photos: bool, delay: float
             job.note = f"Перевіряю @{u}"
             try:
                 info = task.start()
+                info["side"] = ch.get("side", "unknown")
                 with lock:
                     cfg2 = load_config()
                     for c in cfg2["channels"]:
@@ -228,6 +251,7 @@ def api_add():
     body = request.get_json(force=True)
     try:
         folder = clean_folder(body.get("folder"))
+        side = clean_side(body.get("side"))
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     refs = [r for r in re.split(r"[\s,]+", body.get("refs", "")) if r]
@@ -243,7 +267,7 @@ def api_add():
             info = tg.channel_info(f, username)
             with lock:
                 cfg = load_config()
-                cfg["channels"].append({**{k: v for k, v in info.items() if k != "description"}, "folder": folder})
+                cfg["channels"].append({**{k: v for k, v in info.items() if k != "description"}, "folder": folder, "side": side})
                 save_config(cfg)
             added.append(username)
         except Exception as exc:  # noqa: BLE001
@@ -259,12 +283,15 @@ def api_edit(username):
         ch = next((c for c in cfg["channels"] if c["username"] == username), None)
         if ch is None:
             return jsonify({"error": "немає такого каналу"}), 404
-        if "folder" in body:
-            try:
+        try:
+            if "folder" in body:
                 ch["folder"] = clean_folder(body["folder"])
-            except ValueError as e:
-                return jsonify({"error": str(e)}), 400
+            if "side" in body:
+                ch["side"] = clean_side(body["side"])
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
         save_config(cfg)
+        write_side(cfg, ch)
     return jsonify({"ok": True})
 
 

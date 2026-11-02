@@ -10,7 +10,8 @@
       "last_id": 4472,
       "last_date": "2026-10-30",
       "checked_at": "2026-10-31T14:27:52+00:00",
-      "folder": "volunteers"
+      "folder": "volunteers",
+      "side": "hostile"
     },
     {
       "username": "military_engineer",
@@ -21,7 +22,8 @@
       "last_id": 2109,
       "last_date": "2026-10-31",
       "checked_at": "2026-10-31T14:27:55+00:00",
-      "folder": "volunteers"
+      "folder": "volunteers",
+      "side": "hostile"
     },
     {
       "username": "ghost_of_novorossia",
@@ -32,7 +34,8 @@
       "last_id": 44363,
       "last_date": "2026-10-31",
       "checked_at": "2026-10-31T14:27:57+00:00",
-      "folder": "volunteers"
+      "folder": "volunteers",
+      "side": "hostile"
     },
     {
       "username": "reihatori",
@@ -43,7 +46,8 @@
       "last_id": 35218,
       "last_date": "2026-10-14",
       "checked_at": "2026-10-31T14:27:59+00:00",
-      "folder": "volunteers"
+      "folder": "volunteers",
+      "side": "hostile"
     },
     {
       "username": "surf_noise1",
@@ -54,7 +58,8 @@
       "last_id": 55522,
       "last_date": "2026-10-30",
       "checked_at": "2026-10-31T14:28:01+00:00",
-      "folder": "volunteers"
+      "folder": "volunteers",
+      "side": "hostile"
     },
     {
       "username": "makers2fron",
@@ -65,7 +70,8 @@
       "last_id": 12274,
       "last_date": "2026-10-31",
       "checked_at": "2026-10-31T14:28:03+00:00",
-      "folder": "volunteers"
+      "folder": "volunteers",
+      "side": "hostile"
     },
     {
       "username": "vrachivyneodni_channel",
@@ -76,7 +82,8 @@
       "last_id": 11599,
       "last_date": "2026-10-31",
       "checked_at": "2026-10-31T14:28:04+00:00",
-      "folder": "volunteers"
+      "folder": "volunteers",
+      "side": "hostile"
     },
     {
       "username": "interbrigady2022",
@@ -87,7 +94,8 @@
       "last_id": 9050,
       "last_date": "2026-10-31",
       "checked_at": "2026-10-31T14:28:07+00:00",
-      "folder": "volunteers"
+      "folder": "volunteers",
+      "side": "hostile"
     },
     {
       "username": "ekipadobrovolec",
@@ -98,7 +106,68 @@
       "last_id": 1706,
       "last_date": "2026-10-28",
       "checked_at": "2026-10-31T14:28:08+00:00",
-      "folder": "volunteers"
+      "folder": "volunteers",
+      "side": "hostile"
+    },
+    {
+      "username": "ssternenko",
+      "title": "STERNENKO",
+      "subscribers": "880K",
+      "first_id": 3,
+      "first_date": "2018-12-15",
+      "last_id": 65602,
+      "last_date": "2026-11-02",
+      "checked_at": "2026-11-02T17:32:32+00:00",
+      "folder": "ua_volunteers",
+      "side": "friendly"
+    },
+    {
+      "username": "serhiyprytula",
+      "title": "Сергій Притула",
+      "subscribers": "115K",
+      "first_id": 3,
+      "first_date": "2020-03-12",
+      "last_id": 4613,
+      "last_date": "2026-10-31",
+      "checked_at": "2026-11-02T17:32:34+00:00",
+      "folder": "ua_volunteers",
+      "side": "friendly"
+    },
+    {
+      "username": "prytulafoundation",
+      "title": "Фонд Сергія Притули",
+      "subscribers": "3.01K",
+      "first_id": 5,
+      "first_date": "2022-06-08",
+      "last_id": 4441,
+      "last_date": "2026-11-02",
+      "checked_at": "2026-11-02T17:32:36+00:00",
+      "folder": "ua_volunteers",
+      "side": "friendly"
+    },
+    {
+      "username": "victorydrones",
+      "title": "VD:Розвідка Ворога",
+      "subscribers": "38K",
+      "first_id": 2,
+      "first_date": "2022-11-13",
+      "last_id": 68332,
+      "last_date": "2026-11-02",
+      "checked_at": "2026-11-02T17:32:38+00:00",
+      "folder": "ua_volunteers",
+      "side": "friendly"
+    },
+    {
+      "username": "armyofdrones",
+      "title": "Армія дронів / Army of Drones 🇺🇦",
+      "subscribers": "1.3K",
+      "first_id": 4,
+      "first_date": "2022-08-16",
+      "last_id": 3072,
+      "last_date": "2026-11-02",
+      "checked_at": "2026-11-02T17:32:40+00:00",
+      "folder": "ua_volunteers",
+      "side": "friendly"
     }
   ]
 }
